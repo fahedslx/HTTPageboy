@@ -1,0 +1,9 @@
+[package]
+name = "iam-api"
+version = "0.1.0"
+edition = "2018"
+authors = ["FSLO <fahedsl@yandex.com>"]
+
+[dependencies]
+hyper = { version = "1", features = ["full"] }
+tokio = "1.35.1"
