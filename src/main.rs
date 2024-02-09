@@ -1,35 +1,20 @@
+use std::fs;
+use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
-use std::io::prelude::*;
-use std::fs;
-
 mod utils {
 	pub mod threadpool;
 }
 use utils::threadpool::ThreadPool;
 
-fn main() {
-	let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-	let pool = ThreadPool::new(10);
-
-	for stream in listener.incoming() {
-		let stream = stream.unwrap();
-
-		pool.execute(|| {
-			handle_connection(stream)
-		});
-	}
-}
-
-
-fn handle_connection(mut stream: TcpStream) {
+fn handle_request(mut stream: TcpStream) -> (String, String) {
 	let mut buffer = [0; 1024];
 	let get = b"GET / HTTP/1.1\r\n";
 	let sleep = b"GET /sleep HTTP/1.1\r\n";
 	let status: &str;
 	let content: String;
-	
+
 	stream.read(&mut buffer).unwrap();
 
 	if buffer.starts_with(get) {
@@ -46,6 +31,11 @@ fn handle_connection(mut stream: TcpStream) {
 		content = fs::read_to_string("res/html/404.html").unwrap();
 	}
 
+	(status.to_string(), content)
+}
+
+
+fn send_response(mut stream: TcpStream, status: String, content: String) {
 	let response = format!(
 		"HTTP/1.1 {}\r\nContent-Length: {}\r\n\r\n{}",
 		status,
@@ -54,4 +44,20 @@ fn handle_connection(mut stream: TcpStream) {
 	);
 	stream.write(response.as_bytes()).unwrap();
 	stream.flush().unwrap();
+}
+
+
+fn main() {
+	let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+
+	let pool = ThreadPool::new(10);
+
+	for stream in listener.incoming() {
+		let stream = stream.unwrap();
+
+		pool.execute(|| {
+			let (status, content) = handle_request(stream.try_clone().unwrap());
+			send_response(stream, status, content);
+		});
+	}
 }

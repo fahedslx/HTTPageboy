@@ -1,5 +1,6 @@
-use std::thread::{self, JoinHandle};
-use std::sync::{Arc, Mutex, mpsc::{Sender, Receiver, channel}};
+use std::sync::{ Arc, Mutex };
+use std::sync::mpsc::{ Sender, Receiver, channel, SendError };
+use std::thread::{ self, JoinHandle };
 
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
@@ -14,19 +15,22 @@ struct Worker {
 
 impl Worker {
 	fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>) -> Worker {
-		let thread = thread::spawn(
-			move || loop {
-			let job = receiver
-				.lock()
-				.unwrap()
-				.recv()
-				.unwrap();
-			job();
+		let thread = thread::spawn(move || {
+			loop {
+				let job = match receiver.lock() {
+					Ok(lock) => match lock.recv() {
+						Ok(job) => job,
+						Err(_) => break,
+					},
+					Err(_) => break,
+				};
+				job();
 			}
-		);
+		});
 		return Worker { id, thread };
 	}
 }
+
 
 
 #[allow(dead_code)]
@@ -48,7 +52,7 @@ impl ThreadPool {
 			workers.push(Worker::new(id, Arc::clone(&receiver)));
 		}
 
-		return ThreadPool { workers, sender };
+		ThreadPool { workers, sender }
 	}
 
 
@@ -57,6 +61,10 @@ impl ThreadPool {
 			F: FnOnce() + Send + 'static
 	{
 		let job = Box::new(_f);
-		self.sender.send(job).unwrap();
+		if let Err(err) = self.sender.send(job) {
+			match err {
+				SendError(_) => println!("Error sending job to thread pool.")
+			}
+		}
 	}
 }
