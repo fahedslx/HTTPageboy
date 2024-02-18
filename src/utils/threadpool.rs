@@ -4,39 +4,52 @@ use std::thread::{ self, JoinHandle };
 
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
-
+enum Message {
+	NewJob(Job),
+	Terminate,
+}
 
 #[allow(dead_code)]
 struct Worker {
 	id: usize,
-	thread: JoinHandle<()>,
+	thread: Option<JoinHandle<()>>,
 }
 
 
 impl Worker {
-	fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>) -> Worker {
+	fn new(id: usize, receiver: Arc<Mutex<Receiver<Message>>>) -> Worker {
 		let thread = thread::spawn(move || {
 			loop {
-				let job = match receiver.lock() {
+				let message = match receiver.lock() {
 					Ok(lock) => match lock.recv() {
-						Ok(job) => job,
+						Ok(message) => message,
 						Err(_) => break,
 					},
 					Err(_) => break,
 				};
-				job();
+
+				match message {
+					Message::NewJob(job) => {
+						println!("Worker {} got a job; executing.", id);
+						job();
+					}
+					Message::Terminate => {
+						println!("Worker {} was told to terminate.", id);
+						break;
+					}
+					
+				}
 			}
 		});
-		return Worker { id, thread };
+		return Worker { id, thread: Some(thread) };
 	}
 }
-
 
 
 #[allow(dead_code)]
 pub struct ThreadPool{
 	workers: Vec<Worker>,
-	sender: Sender<Job>,
+	sender: Sender<Message>,
 }
 
 
@@ -61,9 +74,27 @@ impl ThreadPool {
 			F: FnOnce() + Send + 'static
 	{
 		let job = Box::new(_f);
-		if let Err(err) = self.sender.send(job) {
+		if let Err(err) = self.sender.send(Message::NewJob(job)) {
 			match err {
 				SendError(_) => println!("Error sending job to thread pool.")
+			}
+		}
+	}
+}
+
+impl Drop for ThreadPool {
+	fn drop(&mut self) {
+		for _ in &self.workers {
+			let _ = self.sender.send(Message::Terminate);
+		}
+
+		for worker in &mut self.workers {
+			println!("Shutting down worker {}", worker.id);
+
+			if let Some(thread) = worker.thread.take() {
+				if let Err(e) = thread.join() {
+					println!("Error al unir el hilo: {:?}", e);
+				}
 			}
 		}
 	}
