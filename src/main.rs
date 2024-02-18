@@ -64,11 +64,14 @@ fn handle_request(mut stream: TcpStream) -> (String, Vec<u8>, String) {
 			});
 		if request.contains(".png HTTP/1.1") {
 			content_type = "image/png".to_string();
-		} else if request.contains(".jpg HTTP/1.1") {
+		}
+		else if request.contains(".jpg HTTP/1.1") {
 			content_type = "image/jpeg".to_string();
-		} else if request.contains(".svg HTTP/1.1") {
+		}
+		else if request.contains(".svg HTTP/1.1") {
 			content_type = "image/svg+xml".to_string();
-		} else if request.contains(".webp HTTP/1.1") {
+		}
+		else if request.contains(".webp HTTP/1.1") {
 			content_type = "image/webp".to_string();
 		}
 	}
@@ -88,14 +91,19 @@ fn handle_request(mut stream: TcpStream) -> (String, Vec<u8>, String) {
 
 
 fn send_response(mut stream: TcpStream, status: String, content: Vec<u8>, content_type: String) {
-	let response = format!(
-		"HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
+	let header = format!(
+		"HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n",
 		status,
 		content_type,
-		content.len(),
-		String::from_utf8_lossy(&content)
+		content.len()
 	);
-	stream.write(response.as_bytes()).unwrap();
+	stream.write(header.as_bytes()).unwrap();
+	if content_type.starts_with("image/") {
+		stream.write(&content).unwrap();
+	}
+	else {
+		stream.write(String::from_utf8_lossy(&content).as_bytes()).unwrap();
+	}
 	stream.flush().unwrap();
 }
 
