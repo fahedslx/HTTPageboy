@@ -9,6 +9,7 @@ enum Message {
 	Terminate,
 }
 
+
 #[allow(dead_code)]
 struct Worker {
 	id: usize,

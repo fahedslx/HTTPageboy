@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::io::prelude::*;
 use std::io::Read;
@@ -5,88 +6,229 @@ use std::net::{TcpListener, TcpStream};
 mod utils {
 	pub mod threadpool;
 }
+// use http::request;
 use utils::threadpool::ThreadPool;
 
+// Statuses that will be returned.
+enum StatusCode {
+	Ok = 200,
+	BadRequest = 400,
+	Unauthorized = 401,
+	Forbidden = 403,
+	NotFound = 404,
+	MethodNotAllowed = 405,
+	InternalServerError = 500,
+}
 
-fn handle_request(mut stream: TcpStream) -> (String, Vec<u8>, String) {
-	let mut buffer = [0; 1024];
-	stream.read(&mut buffer).unwrap();
-	let request = String::from_utf8_lossy(&buffer[..]);
-	let status: &str;
-	let mut content = Vec::new();
-	let mut content_type = String::new();
+impl ToString for StatusCode {
+	fn to_string (&self) -> String {
+		let status_code = match self {
+			StatusCode::Ok => "200 OK",
+			StatusCode::BadRequest => "400 Bad Request",
+			StatusCode::Unauthorized => "401 Unauthorized",
+			StatusCode::Forbidden => "403 Forbidden",
+			StatusCode::NotFound => "404 Not Found",
+			StatusCode::MethodNotAllowed => "405 Method Not Allowed",
+			StatusCode::InternalServerError => "500 Internal Server Error",
+		}.to_string();
 
-	if request.starts_with("GET / HTTP/1.1") {
-		status = "200 OK";
-		fs::File::open("res/html/index.html")
-			.and_then(|mut file| file.read_to_end(&mut content))
-			.unwrap_or_else(|_| {
-				println!("Error al leer el archivo index.html");
-				0
-			});
-		content_type = "text/html".to_string();
+		return status_code;
 	}
-	else if request.starts_with("GET /sleep HTTP/1.1") {
-		status = "200 OK";
-		fs::File::open("res/html/index.html")
-			.and_then(|mut file| file.read_to_end(&mut content))
-			.unwrap_or_else(|_| {
-				println!("Error al leer el archivo index.html");
-				0
-			});
-		content_type = "text/html".to_string();
+}
+
+
+// Define request types that will be handled.
+type Rt = RequestType;
+
+enum RequestType {
+	GET,
+	POST,
+	PUT,
+	DELETE,
+	HEAD,
+	OPTIONS,
+	CONNECT,
+	PATCH,
+}
+
+impl ToString for RequestType {
+	fn to_string (&self) -> String {
+		let request_type = match self {
+			Rt::GET => "GET",
+			Rt::POST => "POST",
+			Rt::PUT => "PUT",
+			Rt::DELETE => "DELETE",
+			Rt::HEAD => "HEAD",
+			Rt::OPTIONS => "OPTIONS",
+			Rt::CONNECT => "CONNECT",
+			Rt::PATCH => "PATCH",
+		}.to_string();
+
+		return request_type;
 	}
-	else if request.contains(".css") {
-		status = "200 OK";
-		let requested_path: Vec<&str> = request.split_whitespace().collect();
-		let path = format!(".{}", requested_path[1]);
-		fs::File::open(path)
-			.and_then(|mut file| file.read_to_end(&mut content))
-			.unwrap_or_else(|_| {
-				println!("Error al leer el archivo CSS");
-				0
-			});
-		content_type = "text/css".to_string();
+}
+
+impl PartialEq for RequestType {
+	fn eq (&self, other: &Self) -> bool {
+		return self.to_string() == other.to_string();
+	}		
+}
+
+
+// Functions that will handle requests.
+type Rh = RequestHandler;
+
+struct RequestHandler {
+	handler: fn(request: &[u8]) -> (String, String, Vec<u8>),
+}
+
+
+// Define routes that will be handled.
+fn get_routes() -> HashMap<String, Vec<(Rt, Rh)>> {
+	let mut routes: HashMap<String, Vec<(RequestType, RequestHandler)>> = HashMap::new();
+	
+	routes.insert(
+			"/".to_string(),
+			vec![
+					(Rt::GET, Rh { handler: handle_home_get }),
+					// Insert other routes here...
+			],
+	);
+	routes.insert(
+			"/test".to_string(),
+			vec![
+					(Rt::GET, Rh { handler: handle_test_get }),
+					// Insert other routes here...
+			],
+	);
+
+	return routes;
+}
+
+
+fn handle_home_get (_request: &[u8]) -> (String, String, Vec<u8>) {
+	return (StatusCode::Ok.to_string(), String::new(), "home-get".as_bytes().to_vec());
+}
+
+fn handle_home_post (_request: &[u8]) -> (String, String, Vec<u8>) {
+	return (StatusCode::Ok.to_string(), String::new(), "home-post".as_bytes().to_vec());
+}
+
+fn handle_test_get (_request: &[u8]) -> (String, String, Vec<u8>) {
+	return (StatusCode::Ok.to_string(), String::new(), "test-get".as_bytes().to_vec());
+}
+
+fn handle_test_post (_request: &[u8]) -> (String, String, Vec<u8>) {
+	return (StatusCode::Ok.to_string(), String::new(), "test-post".as_bytes().to_vec());
+}
+
+
+// Definition and implementation of Request struct.
+struct Request {
+	method: String,
+	path: String,
+	version: String,
+	headers: Vec<(String, String)>,
+	body: String
+}
+
+
+fn request_disassembly(request: String) -> Request {
+	let split_request: Vec<&str> = request.split_whitespace().collect();
+	let method: String = split_request[0].to_string();
+	let path: String = split_request[1].to_string();
+	let version: String = split_request[2].to_string();
+	let headers = Vec::new();
+	let body = String::new();
+
+	return Request {
+		method,
+		path,
+		version,
+		headers,
+		body
+	};
+}
+
+
+fn get_request_content_type (file: &String) -> String {
+	let mut content_type: &str;
+
+	if file.contains(".png HTTP/1.1") {
+		content_type = "image/png";
 	}
-	else if request.contains(".png HTTP/1.1")
-		|| request.contains(".jpg HTTP/1.1")
-		|| request.contains(".svg HTTP/1.1")
-		|| request.contains(".webp HTTP/1.1")
-	{
-		status = "200 OK";
-		let requested_path: Vec<&str> = request.split_whitespace().collect();
-		let path = format!(".{}", requested_path[1]);
-		fs::File::open(path)
-			.and_then(|mut file| file.read_to_end(&mut content))
-			.unwrap_or_else(|_| {
-				println!("Error al leer el archivo de imagen");
-				0
-			});
-		if request.contains(".png HTTP/1.1") {
-			content_type = "image/png".to_string();
-		}
-		else if request.contains(".jpg HTTP/1.1") {
-			content_type = "image/jpeg".to_string();
-		}
-		else if request.contains(".svg HTTP/1.1") {
-			content_type = "image/svg+xml".to_string();
-		}
-		else if request.contains(".webp HTTP/1.1") {
-			content_type = "image/webp".to_string();
-		}
+	else if file.contains(".jpg HTTP/1.1") {
+		content_type = "image/jpeg";
+	}
+	else if file.contains(".svg HTTP/1.1") {
+		content_type = "image/svg+xml";
+	}
+	else if file.contains(".webp HTTP/1.1") {
+		content_type = "image/webp";
+	}
+	else if file.contains(".html HTTP/1.1") {
+		content_type = "text/html";
+	}
+	else if file.contains(".css HTTP/1.1") {
+		content_type = "text/css";
+	}
+	else if file.contains(".js HTTP/1.1") {
+		content_type = "application/javascript";
+	}
+	else if file.contains(".json HTTP/1.1") {
+		content_type = "application/json";
+	}
+	else if file.contains(".xml HTTP/1.1") {
+		content_type = "application/xml";
 	}
 	else {
-		status = "404 Not Found";
-		fs::File::open("res/html/404.html")
-			.and_then(|mut file| file.read_to_end(&mut content))
-			.unwrap_or_else(|_| {
-				println!("Error al leer el archivo 404.html");
-				0
-			});
-		content_type = "text/html".to_string();
+		content_type = "text/plain";
 	}
 
-	(status.to_string(), content, content_type)
+	return content_type.to_string();
+}
+
+
+fn handle_file_request(request: &str) -> (String, String, Vec<u8>) {
+	let mut status = StatusCode::NotFound.to_string();
+	let mut content_type = String::new();
+	let mut content = Vec::new();
+
+	match fs::read(request) {
+		Ok(data) => {
+			status = StatusCode::Ok.to_string();
+			content = data;
+			content_type = get_request_content_type(&request.to_string());
+		}
+		Err(_) => {
+			println!("{}", status);
+		}
+	}
+
+	return (status, content_type, content);
+}
+
+
+fn handle_function_request (_request: &[u8]) {}
+
+
+fn handle_request(mut stream: TcpStream) {
+	let mut buffer: [u8; 1024] = [0; 1024];
+	stream.read(&mut buffer).unwrap();
+	let request = String::from_utf8_lossy(&buffer[..]);
+	let request = request_disassembly(request.to_string());
+
+	let _status: String;
+	let mut _content_type = String::new();
+
+	if ROUTES.contains_key(&request.path) {
+		let route = ROUTES.get(&request.path);
+		if let Some(route) = route {
+			for (request_type, _) in route {
+				println!("Request type: {}", request_type.to_string());
+			}
+		}
+	}
 }
 
 
@@ -108,17 +250,18 @@ fn send_response(mut stream: TcpStream, status: String, content: Vec<u8>, conten
 }
 
 
+// Main
 fn main() {
 	let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-
 	let pool = ThreadPool::new(10);
+	let mut routes: HashMap<String, Vec<(Rt, Rh)>> = HashMap::new();
 
 	for stream in listener.incoming() {
 		match stream {
 			Ok(stream) => {
-				pool.execute(|| {
-					let (status, content, content_type) = handle_request(stream.try_clone().unwrap());
-					send_response(stream, status, content, content_type);
+				pool.execute(move || {
+					handle_request(stream.try_clone().unwrap());
+					// send_response(stream, status, content, content_type);
 				});
 			}
 			Err(err) => {
