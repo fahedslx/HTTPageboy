@@ -11,6 +11,7 @@ use utils::threadpool::ThreadPool;
 
 
 // Statuses that will be returned.
+#[allow(dead_code)]
 enum StatusCode {
 	Ok = 200,
 	BadRequest = 400,
@@ -95,7 +96,7 @@ impl Clone for RequestType {
 type Rh = RequestHandler;
 
 struct RequestHandler {
-	handler: fn(request: &[u8]) -> (String, String, Vec<u8>),
+	handler: fn(request: &Request) -> Response,
 }
 
 impl Clone for RequestHandler {
@@ -108,40 +109,58 @@ impl Clone for RequestHandler {
 // Define routes that will be handled.
 fn get_routes() -> HashMap<String, Vec<(Rt, Rh)>> {
 	let mut routes: HashMap<String, Vec<(RequestType, RequestHandler)>> = HashMap::new();
-	
+
 	routes.insert(
-			"/".to_string(),
-			vec![
-					(Rt::GET, Rh { handler: handle_home_get }),
-					// Insert other routes here...
-			],
+		"/".to_string(),
+		vec![
+			(Rt::GET, Rh { handler: handle_home_get }),
+			// Insert other routes here...
+		],
 	);
 	routes.insert(
-			"/test".to_string(),
-			vec![
-					(Rt::GET, Rh { handler: handle_test_get }),
-					// Insert other routes here...
-			],
+		"/test".to_string(),
+		vec![
+			(Rt::GET, Rh { handler: handle_test_get }),
+			// Insert other routes here...
+		],
 	);
 
 	return routes;
 }
 
 
-fn handle_home_get (_request: &[u8]) -> (String, String, Vec<u8>) {
-	return (StatusCode::Ok.to_string(), String::new(), "home-get".as_bytes().to_vec());
+fn handle_home_get (_request: &Request) -> Response {
+	return Response {
+		status: StatusCode::Ok.to_string(),
+		content_type: String::new(),
+		content: "home-get".as_bytes().to_vec(),
+	}
 }
 
-fn handle_home_post (_request: &[u8]) -> (String, String, Vec<u8>) {
-	return (StatusCode::Ok.to_string(), String::new(), "home-post".as_bytes().to_vec());
+#[allow(dead_code)]
+fn handle_home_post (_request: &Request) -> Response {
+	return Response {
+		status: StatusCode::Ok.to_string(),
+		content_type: String::new(),
+		content: "home-post".as_bytes().to_vec(),
+	}
 }
 
-fn handle_test_get (_request: &[u8]) -> (String, String, Vec<u8>) {
-	return (StatusCode::Ok.to_string(), String::new(), "test-get".as_bytes().to_vec());
+fn handle_test_get (_request: &Request) -> Response {
+	return Response {
+		status: StatusCode::Ok.to_string(),
+		content_type: String::new(),
+		content: "test-get".as_bytes().to_vec(),
+	}
 }
 
-fn handle_test_post (_request: &[u8]) -> (String, String, Vec<u8>) {
-	return (StatusCode::Ok.to_string(), String::new(), "test-post".as_bytes().to_vec());
+#[allow(dead_code)]
+fn handle_test_post (_request: &Request) -> Response {
+	return Response {
+		status: StatusCode::Ok.to_string(),
+		content_type: String::new(),
+		content: "test-post".as_bytes().to_vec(),
+	}
 }
 
 
@@ -158,9 +177,10 @@ impl Display for Request {
 	fn fmt (&self, f: &mut Formatter<'_>) -> Result {
 		write!(
 			f,
-			"{} {}\n{:#?}\n{}",
+			"Method: {}\nPath: {}\nVersion: {}\nHeaders: {:#?},\nBody: {}\n",
 			self.method,
 			self.path,
+			self.version,
 			self.headers,
 			self.body
 		)
@@ -189,80 +209,81 @@ fn request_disassembly(request: String) -> Request {
 		}
 	}
 
-	let headers = lines[..blank_line_index].join("\r\n");
+	let temp_headers = lines[..blank_line_index].join("\r\n");
+	let mut parsed_headers = Vec::new();
+	for header_line in temp_headers.lines() {
+		let header_parts: Vec<&str> = header_line.split(": ").collect();
+		if header_parts.len() == 2 {
+			let header_name = header_parts[0].to_string();
+			let header_value = header_parts[1].to_string();
+			parsed_headers.push((header_name, header_value));
+		}
+	}
+	let headers = parsed_headers;
 	let body = lines[blank_line_index + 1..].join("\r\n");
-
 	let split_request: Vec<&str> = request.split_whitespace().collect();
 	let method: String = split_request[0].to_string();
 	let path: String = split_request[1].to_string();
 	let version: String = split_request[2].to_string();
 
-	let mut parsed_headers = Vec::new();
-	for header_line in headers.lines() {
-			let header_parts: Vec<&str> = header_line.split(": ").collect();
-			if header_parts.len() == 2 {
-					let header_name = header_parts[0].to_string();
-					let header_value = header_parts[1].to_string();
-					parsed_headers.push((header_name, header_value));
-			}
-	}
-
 	return Request {
 		method,
 		path,
 		version,
-		headers: parsed_headers,
+		headers,
 		body
 	};
 }
 
-fn get_request_content_type (file: &String) -> String {
-	let content_type: &str;
+fn get_content_type_quick(filename: &String) -> String {
+	let extension: Option<&str> = filename.split('.').last();
 
-	if file.contains(".png HTTP/1.1") {
-		content_type = "image/png";
-	}
-	else if file.contains(".jpg HTTP/1.1") {
-		content_type = "image/jpeg";
-	}
-	else if file.contains(".svg HTTP/1.1") {
-		content_type = "image/svg+xml";
-	}
-	else if file.contains(".webp HTTP/1.1") {
-		content_type = "image/webp";
-	}
-	else if file.contains(".html HTTP/1.1") {
-		content_type = "text/html";
-	}
-	else if file.contains(".css HTTP/1.1") {
-		content_type = "text/css";
-	}
-	else if file.contains(".js HTTP/1.1") {
-		content_type = "application/javascript";
-	}
-	else if file.contains(".json HTTP/1.1") {
-		content_type = "application/json";
-	}
-	else if file.contains(".xml HTTP/1.1") {
-		content_type = "application/xml";
-	}
-	else {
-		content_type = "text/plain";
-	}
+	let content_type: &str = match extension {
+		Some("png") => "image/png",
+		Some("jpg") | Some("jpeg") => "image/jpeg",
+		Some("gif") => "image/gif",
+		Some("bmp") => "image/bmp",
+		Some("svg") => "image/svg+xml",
+		Some("webp") => "image/webp",
+		Some("html") => "text/html",
+		Some("css") => "text/css",
+		Some("js") => "application/javascript",
+		Some("json") => "application/json",
+		Some("xml") => "application/xml",
+		Some("pdf") => "application/pdf",
+		Some("doc") | Some("docx") => "application/msword",
+		Some("xls") | Some("xlsx") => "application/vnd.ms-excel",
+		Some("ppt") | Some("pptx") => "application/vnd.ms-powerpoint",
+		Some("zip") => "application/zip",
+		Some("rar") => "application/x-rar-compressed",
+		Some("txt") => "text/plain",
+		Some("csv") => "text/csv",
+		Some("mp3") => "audio/mpeg",
+		Some("wav") => "audio/wav",
+		Some("mp4") => "video/mp4",
+		Some("avi") => "video/x-msvideo",
+		Some("mov") => "video/quicktime",
+		Some("ogg") => "audio/ogg",
+		Some("ogv") => "video/ogg",
+		Some("oga") => "audio/ogg",
+		Some("ico") => "image/x-icon",
+		_ => "application/octet-stream",
+	};
 
 	return content_type.to_string();
 }
 
-fn handle_file_request(request: &str) -> Response {
-	let mut status = StatusCode::NotFound.to_string();
-	let mut content_type = String::new();
-	let mut content = Vec::new();
+fn handle_file_request(filepath: &String) -> Response {
+	let mut status: String = StatusCode::NotFound.to_string();
+	let mut content_type: String = String::new();
+	let mut content: Vec<u8> = Vec::new();
 
-	match fs::read(request) {
+	let data = fs::read(filepath);
+	match data {
 		Ok(data) => {
 			status = StatusCode::Ok.to_string();
 			content = data;
-			content_type = get_request_content_type(&request.to_string());
+			content_type = get_content_type_quick(&filepath);
 		}
 		Err(_) => {
 			println!("{}", status);
@@ -275,16 +296,24 @@ fn handle_file_request(request: &str) -> Response {
 }
 
 fn handle_request(request: &Request, routes: &HashMap<String, Vec<(Rt, Rh)>>) -> Option<Response> {
-	let _status: String = StatusCode::Ok.to_string();
-	let _content_type: String = String::new();
-	let _content: Vec<u8> = Vec::new();
-	let response: Response = Response {
-		status: _status,
-		content_type: _content_type,
-		content: _content
-	};
+	let mut response: Option<Response> = None;
 
-	return Some(response);
+	let temp_content_type = get_content_type_quick(&request.path);
+	if temp_content_type == "application/octet-stream" {
+		let route = routes.get(&request.path);
+		if let Some(route) = route {
+			for (rt, rh) in route {
+				if rt == &Rt::GET {
+					response = Some((rh.handler)(request));
+				}
+			}
+		}
+	}
+	else if request.method == "GET" {
+		response = Some(handle_file_request(&request.path));
+	}
+
+	return response;
 }
 
 
@@ -296,7 +325,17 @@ struct Response {
 
 impl Display for Response {
 	fn fmt (&self, f: &mut Formatter<'_>) -> Result {
-		write!(f, "{}", self.content.len())
+		write!(f, "{:#?}", self.content)
+	}
+}
+
+impl Response {
+	fn new() -> Response {
+		Response {
+			status: StatusCode::NotFound.to_string(),
+			content_type: String::new(),
+			content: "Not found.".as_bytes().to_vec(),
+		}
 	}
 }
 
@@ -318,21 +357,24 @@ fn send_response(mut stream: TcpStream, response: &Response) {
 }
 
 
-// Main
-fn main() {
-	let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-	let pool = ThreadPool::new(10);
-	let routes: HashMap<String, Vec<(Rt, Rh)>> = get_routes();
-
+fn serve (listener: TcpListener, pool: ThreadPool, routes: HashMap<String, Vec<(Rt, Rh)>>) {
 	for stream in listener.incoming() {
 		match stream {
 			Ok(stream) => {
+				println!("Serving.");
 				let routes_local = routes.clone();
 				pool.execute(move || {
 					let request: Request = stream_to_request(&stream);
-					println!("{} - {}", 1, &request);
-					let response = handle_request(&request, &routes_local).unwrap();
-					send_response(stream, &response);
+					println!("{}", &request);
+					let answer: Option<Response> = handle_request(&request, &routes_local);
+					match answer {
+						Some(response) => {
+							send_response(stream, &response);
+						}
+						None => {
+							send_response(stream, &Response::new());
+						}
+					}
 				});
 			}
 			Err(err) => {
@@ -340,4 +382,14 @@ fn main() {
 			}
 		}
 	}
+}
+
+
+// Main
+fn main() {
+	let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+	let pool = ThreadPool::new(10);
+	let routes: HashMap<String, Vec<(Rt, Rh)>> = get_routes();
+
+	serve(listener, pool, routes);
 }
