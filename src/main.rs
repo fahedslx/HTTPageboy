@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::{ Display, Formatter, Result };
 use std::fs;
 use std::io::prelude::*;
 use std::io::Read;
@@ -6,8 +7,8 @@ use std::net::{TcpListener, TcpStream};
 mod utils {
 	pub mod threadpool;
 }
-// use http::request;
 use utils::threadpool::ThreadPool;
+
 
 // Statuses that will be returned.
 enum StatusCode {
@@ -74,12 +75,33 @@ impl PartialEq for RequestType {
 	}		
 }
 
+impl Clone for RequestType {
+	fn clone(&self) -> Self {
+		match self {
+			Rt::GET => Rt::GET,
+			Rt::POST => Rt::POST,
+			Rt::PUT => Rt::PUT,
+			Rt::DELETE => Rt::DELETE,
+			Rt::HEAD => Rt::HEAD,
+			Rt::OPTIONS => Rt::OPTIONS,
+			Rt::CONNECT => Rt::CONNECT,
+			Rt::PATCH => Rt::PATCH,
+		}
+	}
+}
+
 
 // Functions that will handle requests.
 type Rh = RequestHandler;
 
 struct RequestHandler {
 	handler: fn(request: &[u8]) -> (String, String, Vec<u8>),
+}
+
+impl Clone for RequestHandler {
+	fn clone(&self) -> Self {
+		RequestHandler { handler: self.handler }
+	}
 }
 
 
@@ -132,27 +154,70 @@ struct Request {
 	body: String
 }
 
+impl Display for Request {
+	fn fmt (&self, f: &mut Formatter<'_>) -> Result {
+		write!(
+			f,
+			"{} {}\n{:#?}\n{}",
+			self.method,
+			self.path,
+			self.headers,
+			self.body
+		)
+	}
+}
+
+fn stream_to_request(mut stream: &TcpStream) -> Request {
+	let mut buffer: [u8; 1024] = [0; 1024];
+	stream.read(&mut buffer).unwrap();
+	let request = String::from_utf8_lossy(&buffer[..]);
+	let request = request_disassembly(request.to_string());
+
+	return request;
+}
 
 fn request_disassembly(request: String) -> Request {
+	// Divide la solicitud en líneas
+	let lines: Vec<&str> = request.split("\r\n").collect();
+
+	// Busca el índice de la línea en blanco que separa los headers del body
+	let mut blank_line_index = 0;
+	for (i, line) in lines.iter().enumerate() {
+		if line.trim().is_empty() {
+			blank_line_index = i;
+			break;
+		}
+	}
+
+	let headers = lines[..blank_line_index].join("\r\n");
+	let body = lines[blank_line_index + 1..].join("\r\n");
+
 	let split_request: Vec<&str> = request.split_whitespace().collect();
 	let method: String = split_request[0].to_string();
 	let path: String = split_request[1].to_string();
 	let version: String = split_request[2].to_string();
-	let headers = Vec::new();
-	let body = String::new();
+
+	let mut parsed_headers = Vec::new();
+	for header_line in headers.lines() {
+			let header_parts: Vec<&str> = header_line.split(": ").collect();
+			if header_parts.len() == 2 {
+					let header_name = header_parts[0].to_string();
+					let header_value = header_parts[1].to_string();
+					parsed_headers.push((header_name, header_value));
+			}
+	}
 
 	return Request {
 		method,
 		path,
 		version,
-		headers,
+		headers: parsed_headers,
 		body
 	};
 }
 
-
 fn get_request_content_type (file: &String) -> String {
-	let mut content_type: &str;
+	let content_type: &str;
 
 	if file.contains(".png HTTP/1.1") {
 		content_type = "image/png";
@@ -188,8 +253,7 @@ fn get_request_content_type (file: &String) -> String {
 	return content_type.to_string();
 }
 
-
-fn handle_file_request(request: &str) -> (String, String, Vec<u8>) {
+fn handle_file_request(request: &str) -> Response {
 	let mut status = StatusCode::NotFound.to_string();
 	let mut content_type = String::new();
 	let mut content = Vec::new();
@@ -205,46 +269,50 @@ fn handle_file_request(request: &str) -> (String, String, Vec<u8>) {
 		}
 	}
 
-	return (status, content_type, content);
+	return Response{
+		status, content_type, content
+	};
+}
+
+fn handle_request(request: &Request, routes: &HashMap<String, Vec<(Rt, Rh)>>) -> Option<Response> {
+	let _status: String = StatusCode::Ok.to_string();
+	let _content_type: String = String::new();
+	let _content: Vec<u8> = Vec::new();
+	let response: Response = Response {
+		status: _status,
+		content_type: _content_type,
+		content: _content
+	};
+
+	return Some(response);
 }
 
 
-fn handle_function_request (_request: &[u8]) {}
+struct Response {
+	status: String,
+	content_type: String,
+	content: Vec<u8>
+}
 
-
-fn handle_request(mut stream: TcpStream) {
-	let mut buffer: [u8; 1024] = [0; 1024];
-	stream.read(&mut buffer).unwrap();
-	let request = String::from_utf8_lossy(&buffer[..]);
-	let request = request_disassembly(request.to_string());
-
-	let _status: String;
-	let mut _content_type = String::new();
-
-	if ROUTES.contains_key(&request.path) {
-		let route = ROUTES.get(&request.path);
-		if let Some(route) = route {
-			for (request_type, _) in route {
-				println!("Request type: {}", request_type.to_string());
-			}
-		}
+impl Display for Response {
+	fn fmt (&self, f: &mut Formatter<'_>) -> Result {
+		write!(f, "{}", self.content.len())
 	}
 }
 
-
-fn send_response(mut stream: TcpStream, status: String, content: Vec<u8>, content_type: String) {
+fn send_response(mut stream: TcpStream, response: &Response) {
 	let header = format!(
 		"HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n",
-		status,
-		content_type,
-		content.len()
+		response.status,
+		response.content_type,
+		response.content.len()
 	);
 	stream.write(header.as_bytes()).unwrap();
-	if content_type.starts_with("image/") {
-		stream.write(&content).unwrap();
+	if response.content_type.starts_with("image/") {
+		stream.write(&response.content).unwrap();
 	}
 	else {
-		stream.write(String::from_utf8_lossy(&content).as_bytes()).unwrap();
+		stream.write(String::from_utf8_lossy(&response.content).as_bytes()).unwrap();
 	}
 	stream.flush().unwrap();
 }
@@ -254,14 +322,17 @@ fn send_response(mut stream: TcpStream, status: String, content: Vec<u8>, conten
 fn main() {
 	let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 	let pool = ThreadPool::new(10);
-	let mut routes: HashMap<String, Vec<(Rt, Rh)>> = HashMap::new();
+	let routes: HashMap<String, Vec<(Rt, Rh)>> = get_routes();
 
 	for stream in listener.incoming() {
 		match stream {
 			Ok(stream) => {
+				let routes_local = routes.clone();
 				pool.execute(move || {
-					handle_request(stream.try_clone().unwrap());
-					// send_response(stream, status, content, content_type);
+					let request: Request = stream_to_request(&stream);
+					println!("{} - {}", 1, &request);
+					let response = handle_request(&request, &routes_local).unwrap();
+					send_response(stream, &response);
 				});
 			}
 			Err(err) => {
