@@ -1,3 +1,4 @@
 # RUST
 /target
+/.vscode
 Cargo.lock
