@@ -119,17 +119,18 @@ fn get_content_type_quick(filename: &String) -> String {
 }
 
 fn handle_file_request(filepath: &String) -> Response {
-	print!("{}", filepath);
+	let requested_path = format!(".{}", filepath);
+	print!("{}", requested_path);
 	let mut status: String = StatusCode::NotFound.to_string();
 	let mut content_type: String = String::new();
 	let mut content: Vec<u8> = Vec::new();
 
-	let data = fs::read(filepath);
+	let data = fs::read(&requested_path);
 	match data {
 		Ok(data) => {
 			status = StatusCode::Ok.to_string();
 			content = data;
-			content_type = get_content_type_quick(&filepath);
+			content_type = get_content_type_quick(&requested_path);
 		}
 		Err(_) => {
 			println!("{}", status);
