@@ -1,0 +1,88 @@
+use std::collections::HashMap;
+use std::io::prelude::*;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
+
+pub use crate::threadpool::ThreadPool;
+pub use crate::request_type::Rt;
+pub use crate::request_handler::Rh;
+use crate::request::{ Request, stream_to_request, handle_request};
+use crate::response::Response;
+
+
+pub struct ServerBase {
+	listener: TcpListener,
+	pool: Arc<Mutex<ThreadPool>>,
+	routes: HashMap<String, Vec<(Rt, Rh)>>,
+}
+
+impl ServerBase {
+
+	pub fn new(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<String, Vec<(Rt, Rh)>>>) -> ServerBase{
+  	let listener = TcpListener::bind(serving_url).unwrap();
+		let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
+		let routes;
+
+		if let Some(routes_list) = routes_list {
+			routes = routes_list;
+		}
+		else {
+			routes = HashMap::new();
+		}
+
+		return ServerBase {
+			listener,
+			pool,
+			routes,
+		};
+	}
+
+	pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
+		let handler = Rh { handler: rh};
+		self.routes.insert(path.to_string(), vec![(rt, handler)]);
+	}
+
+	pub fn serve (&self) {
+		for stream in self.listener.incoming(){
+			match stream {
+				Ok(stream) => {
+					let routes_local = self.routes.clone();
+					let pool = Arc::clone(&self.pool);
+					pool.lock().unwrap().execute(move || {
+						let request: Request = stream_to_request(&stream);
+						// println!("{}", &request);
+						let answer: Option<Response> = handle_request(&request, &routes_local);
+						match answer {
+							Some(response) => {
+								send_response(stream, &response);
+							}
+							None => {
+								send_response(stream, &Response::new());
+							}
+						}
+					});
+				}
+				Err(err) => {
+					println!("Error: {}", err);
+				}
+			}
+		}
+	}
+}
+
+fn send_response(mut stream: TcpStream, response: &Response) {
+	let header = format!(
+		"HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n",
+		response.status,
+		response.content_type,
+		response.content.len()
+	);
+	stream.write(header.as_bytes()).unwrap();
+	if response.content_type.starts_with("image/") {
+		stream.write(&response.content).unwrap();
+	}
+	else {
+		stream.write(String::from_utf8_lossy(&response.content).as_bytes()).unwrap();
+	}
+	stream.flush().unwrap();
+}

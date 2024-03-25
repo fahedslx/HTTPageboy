@@ -119,6 +119,7 @@ fn get_content_type_quick(filename: &String) -> String {
 }
 
 fn handle_file_request(filepath: &String) -> Response {
+	print!("{}", filepath);
 	let mut status: String = StatusCode::NotFound.to_string();
 	let mut content_type: String = String::new();
 	let mut content: Vec<u8> = Vec::new();
@@ -154,7 +155,8 @@ pub fn handle_request(request: &Request, routes: &HashMap<String, Vec<(Rt, Rh)>>
 			}
 		}
 	}
-	else if request.method == "GET" {
+	// If not in router, try with files.
+	else if request.method == Rt::GET.to_string() {
 		response = Some(handle_file_request(&request.path));
 	}
 
