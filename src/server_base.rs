@@ -17,9 +17,12 @@ pub struct ServerBase {
 }
 
 impl ServerBase {
-
-	pub fn new(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<String, Vec<(Rt, Rh)>>>) -> ServerBase{
-  	let listener = TcpListener::bind(serving_url).unwrap();
+	pub fn new(
+			serving_url: &str,
+			pool_size: u8,
+			routes_list: Option<HashMap<String, Vec<(Rt, Rh)>>>)
+			-> Result<ServerBase, std::io::Error>{
+  	let listener = TcpListener::bind(serving_url)?;
 		let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
 		let routes;
 
@@ -30,11 +33,11 @@ impl ServerBase {
 			routes = HashMap::new();
 		}
 
-		return ServerBase {
+		return Ok(ServerBase {
 			listener,
 			pool,
 			routes,
-		};
+		});
 	}
 
 	pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
@@ -50,7 +53,6 @@ impl ServerBase {
 					let pool = Arc::clone(&self.pool);
 					pool.lock().unwrap().execute(move || {
 						let request: Request = stream_to_request(&stream);
-						// println!("{}", &request);
 						let answer: Option<Response> = handle_request(&request, &routes_local);
 						match answer {
 							Some(response) => {
