@@ -23,6 +23,7 @@ Creating a simple server:
 	server.add_route("/test", Rt::GET, demo_handle_test_get);
 
 	// Server start, running on http://127.0.0.1:7878
+	// It can already serve correctly the routes and static files within the server.
 	server.serve();
 
 	pub fn demo_handle_home_get (_request: &Request) -> Response {
