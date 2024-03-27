@@ -9,9 +9,11 @@ use std::sync::Once;
 extern crate server_base;
 use server_base::{ ServerBase, Rt, Rh, Request, Response, StatusCode };
 
+
 const SERVER_URL: &str  = "127.0.0.1:7878";
 const INTERVAL: Duration = Duration::from_millis(250);
 static INIT: Once = Once::new();
+
 
 pub fn demo_handle_home_get (_request: &Request) -> Response {
 	return Response {
@@ -80,6 +82,7 @@ fn setup() {
 		thread::sleep(INTERVAL);
 	});
 }
+
 
 #[test]
 fn test_home() {
