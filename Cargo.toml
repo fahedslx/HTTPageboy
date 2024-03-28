@@ -7,4 +7,5 @@ authors = ["fahedsl <fahedsl@yandex.com>"]
 [lib]
 name = "eqeqo_server_base"
 path = "src/lib.rs"
+
 [dependencies]
