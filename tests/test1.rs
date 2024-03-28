@@ -1,4 +1,5 @@
 #[cfg(test)]
+
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::thread::{ self, JoinHandle };
@@ -6,8 +7,8 @@ use std::time::Duration;
 use std::collections::HashMap;
 use std::sync::Once;
 
-extern crate server_base;
-use server_base::{ ServerBase, Rt, Rh, Request, Response, StatusCode };
+extern crate eqeqo_server_base;
+use eqeqo_server_base::{ ServerBase, Rt, Rh, Request, Response, StatusCode };
 
 
 const SERVER_URL: &str  = "127.0.0.1:7878";
@@ -36,7 +37,7 @@ fn run_server(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<Stri
 	let server_result = ServerBase::new(serving_url, pool_size, routes_list);
 	let mut server = match server_result {
 		Ok(server) => server,
-		Err(e) => panic!("Error al crear el servidor: {}", e),
+		Err(e) => panic!("Error while creating server: {}", e),
 	};
 
 	server.add_route("/", Rt::GET, demo_handle_home_get);

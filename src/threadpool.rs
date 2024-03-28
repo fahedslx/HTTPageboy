@@ -102,7 +102,7 @@ impl Drop for ThreadPool {
 
 			if let Some(thread) = worker.thread.take() {
 				if let Err(e) = thread.join() {
-					println!("Error al unir el hilo: {:?}", e);
+					println!("Error joining thread: {:?}", e);
 				}
 			}
 		}

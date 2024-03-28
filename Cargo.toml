@@ -1,11 +1,11 @@
 [package]
-name = "server_base"
+name = "eqeqo_server_base"
 version = "0.1.0"
 edition = "2021"
 authors = ["fahedsl <fahedsl@yandex.com>"]
 
 [lib]
-name = "server_base"
+name = "eqeqo_server_base"
 path = "src/lib.rs"
 
 [dependencies]

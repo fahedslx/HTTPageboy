@@ -1,37 +1,41 @@
-**EQEQO - SERVER_BASE**
+# eqeqo - server_base
 
 ## Overview
-The server base library provides a basic server implementation. The server can be used to host static files and handle HTTP requests.
-The server will be able to handle a request and return the response to the client according to the routes provided by the developer.
+The server base library provides a basic HTTP server implementation. It can be used to host static files and handle HTTP requests.
+The server will handle requests according to the setup `route`s, and also static files even if the `route` is not defined.
 
++ `Request`s can be any HTTP request.
++ `Route`s are formed by the path, the HTTP request type, and the function to handle the request. The function must return a `Response` instance.
++ `Response`s type are identified by the content type and are returned as bytes to browsers.
 
-+ Requests can be any HTTP request.
-+ Routes are formed by the path, the HTTP request type, and the function to handle the request. The function must return a Response instance.
-+ Responses type are identified by the content type and are returned as bytes for browsers.
 
 ## Examples
 
 Creating a simple server:
 
 ```rust
-	// Server setup
-	let serving_url: &str  = "127.0.0.1:7878";
-	let pool_size: u8 = 10;
-	let server = ServerBase::new(serving_url, pool_size, None).unwrap();
+	use server_base::{ ServerBase, Rt, Request, Response, StatusCode };
 
-	// Routes setup
-	server.add_route("/test", Rt::GET, demo_handle_test_get);
-
-	// Server start, running on http://127.0.0.1:7878
-	// It can already serve correctly the routes and static files within the server.
-	server.serve();
-
-	pub fn demo_handle_home_get (_request: &Request) -> Response {
+	// Demo route handler
+	fn demo_handle_test_get (_request: &Request) -> Response {
 		return Response {
 			status: StatusCode::Ok.to_string(),
 			content_type: String::new(),
-			content: "home-get".as_bytes().to_vec(),
+			content: "test-get".as_bytes().to_vec(),
 		}
+	}
+
+	fn main() {
+		let serving_url: &str  = "127.0.0.1:7878";
+		let pool_size: u8 = 10;
+		let server = ServerBase::new(serving_url, pool_size, None).unwrap();
+	
+		server.add_route("/test", Rt::GET, demo_handle_test_get);
+	
+		server.serve();
+		// Runs on http://127.0.0.1:7878
+		// It can serve correctly the defined route.
+		// It can also serve static files even if the route is not defined.
 	}
 ```
 
