@@ -3,6 +3,10 @@ name = "eqeqo_server_base"
 version = "0.1.0"
 edition = "2021"
 authors = ["fahedsl <fahedsl@yandex.com>"]
+description = "Library for creating HTTP server basic functionality."
+license = "MIT"
+license-file = "LICENSE"
+repository = "https://gitlab.com/numanope/eqeqo/server-base"
 
 [lib]
 name = "eqeqo_server_base"
