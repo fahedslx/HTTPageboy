@@ -1,6 +1,6 @@
 [package]
 name = "eqeqo_server_base"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["fahedsl <fahedsl@yandex.com>"]
 description = "Library for creating HTTP server basic functionality."
