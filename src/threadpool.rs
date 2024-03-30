@@ -89,6 +89,13 @@ impl ThreadPool {
 			}
 		}
 	}
+
+	pub fn shutdown(&self) {
+		for _ in &self.workers {
+			self.sender.send(Message::Terminate).unwrap();
+		}
+	}
+
 }
 
 impl Drop for ThreadPool {

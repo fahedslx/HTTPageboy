@@ -142,19 +142,15 @@ fn handle_file_request(filepath: &String) -> Response {
 	};
 }
 
-pub fn handle_request(request: &Request, routes: &HashMap<String, Vec<(Rt, Rh)>>) -> Option<Response> {
+pub fn handle_request(request: &Request, routes: &HashMap<String, Rh>) -> Option<Response> {
+	println!("REQUEST:  {}", request);
 	let mut response: Option<Response> = None;
 
-	let temp_content_type = get_content_type_quick(&request.path);
-	if temp_content_type == "application/octet-stream" {
-		let route = routes.get(&request.path);
-		if let Some(route) = route {
-			for (rt, rh) in route {
-				if rt == &Rt::GET {
-					response = Some((rh.handler)(request));
-				}
-			}
-		}
+	let key = format!("{}|{}", request.path, request.method);
+	// Try with router
+	if let Some(handler) = routes.get(&key) {
+		let handler_func = handler.handler;
+		response = Some(handler_func(request));
 	}
 	// If not in router, try with files.
 	else if request.method == Rt::GET.to_string() {

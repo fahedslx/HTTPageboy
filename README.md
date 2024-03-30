@@ -1,6 +1,9 @@
 # eqeqo - server_base
 
 ## Overview
+
+*Still under development. If you are interested, feel free to report issues or even branch the repository.*
+
 The server base library provides a basic HTTP server implementation. It can be used to host static files and handle HTTP requests.
 The server will handle requests according to the setup `route`s, and also static files even if the `route` is not defined.
 

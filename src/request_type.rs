@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 pub type Rt = RequestType;
 
 pub enum RequestType {
@@ -45,6 +47,21 @@ impl Clone for RequestType {
 			Rt::OPTIONS => Rt::OPTIONS,
 			Rt::CONNECT => Rt::CONNECT,
 			Rt::PATCH => Rt::PATCH,
+		}
+	}
+}
+
+impl Debug for RequestType {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Rt::GET => write!(f, "GET"),
+			Rt::POST => write!(f, "POST"),
+			Rt::PUT => write!(f, "PUT"),
+			Rt::DELETE => write!(f, "DELETE"),
+			Rt::HEAD => write!(f, "HEAD"),
+			Rt::OPTIONS => write!(f, "OPTIONS"),
+			Rt::CONNECT => write!(f, "CONNECT"),
+			Rt::PATCH => write!(f, "PATCH"),
 		}
 	}
 }

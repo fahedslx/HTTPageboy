@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::prelude::*;
+use std::io::prelude::Write;
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 
@@ -13,14 +13,14 @@ use crate::response::Response;
 pub struct ServerBase {
 	listener: TcpListener,
 	pool: Arc<Mutex<ThreadPool>>,
-	routes: HashMap<String, Vec<(Rt, Rh)>>,
+	routes: HashMap<String, Rh>,
 }
 
 impl ServerBase {
 	pub fn new(
 			serving_url: &str,
 			pool_size: u8,
-			routes_list: Option<HashMap<String, Vec<(Rt, Rh)>>>)
+			routes_list: Option<HashMap<String, Rh>>)
 			-> Result<ServerBase, std::io::Error>{
   	let listener = TcpListener::bind(serving_url)?;
 		let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
@@ -41,8 +41,10 @@ impl ServerBase {
 	}
 
 	pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
+		let key = format!("{}|{}", path, rt.to_string());
 		let handler = Rh { handler: rh};
-		self.routes.insert(path.to_string(), vec![(rt, handler)]);
+		self.routes.insert(key, handler);
+		println!("routes: {:#?}", self.routes);
 	}
 
 	pub fn serve (&self) {
@@ -69,6 +71,11 @@ impl ServerBase {
 				}
 			}
 		}
+	}
+
+	pub fn stop(&self) {
+    let pool = self.pool.lock().unwrap();
+    pool.shutdown();
 	}
 }
 
