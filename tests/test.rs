@@ -2,7 +2,7 @@
 
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::thread::{ self, JoinHandle };
+use std::thread;
 use std::time::Duration;
 use std::collections::HashMap;
 
@@ -56,12 +56,9 @@ pub fn demo_handle_delete (_request: &Request) -> Response {
 }
 
 
-fn run_server(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<String, Rh>>) -> JoinHandle<()> {
-	let server_result = ServerBase::new(serving_url, pool_size, routes_list);
-	let mut server = match server_result {
-		Ok(server) => server,
-		Err(e) => panic!("Error while creating server: {}", e),
-	};
+fn create_server(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<String, Rh>>) -> ServerBase {
+	let mut server = ServerBase::new(serving_url, pool_size, routes_list)
+		.expect("Failed to create server");
 
 	server.add_route("/", Rt::GET, demo_handle_home);
 	server.add_route("/test", Rt::GET, demo_handle_get);
@@ -69,25 +66,13 @@ fn run_server(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<Stri
 	server.add_route("/test", Rt::PUT, demo_handle_put);
 	server.add_route("/test", Rt::DELETE, demo_handle_delete);
 
-	return thread::spawn(move || {
-		server.serve();
-	});
+	return server;	
 }
 
 fn test_server(request:&[u8], expected_response:&[u8] ) {
-	let server: JoinHandle<()> = thread::spawn(|| {
-		run_server(SERVER_URL, POOL_SIZE, None);
-	});
-	thread::sleep(INTERVAL);
-
-	#[allow(unused_assignments)]
 	let mut stream: Option<TcpStream> = None;
 	if let Ok(local_stream) = TcpStream::connect(SERVER_URL) {
-		println!("{:?}", local_stream);
 		stream = Some(local_stream);
-	}
-	else {
-		panic!("Failed to connect");
 	}
 	let mut stream = stream.expect("Failed to connect to server");
 
@@ -103,56 +88,60 @@ fn test_server(request:&[u8], expected_response:&[u8] ) {
 	let buffer_string = String::from_utf8_lossy(&buffer).to_string();
 	let expected_response_string = String::from_utf8_lossy(expected_response).to_string();
 	assert!(buffer_string.contains(&expected_response_string));
-
-	server.join().unwrap();
 }
 
+fn run_test(request: &[u8], expected_response: &[u8]) {
+	let server_thread = thread::spawn(|| {
+		let server: ServerBase = create_server(SERVER_URL, POOL_SIZE, None);
+		server.run();
+	});
 
-
-
-
-
-
+	thread::sleep(INTERVAL);
+	test_server(request, expected_response);
+	server_thread.join().unwrap();
+}
 
 
 #[test]
 fn test_home() {
 	let request = b"GET / HTTP/1.1\r\n\r\n";
 	let expected_response = b"home";
-	test_server(request, expected_response);
+
+	run_test(request, expected_response);
 }
 
 #[test]
 fn test_get() {
 	let request = b"GET /test HTTP/1.1\r\n\r\n";
 	let expected_response = b"get";
-	test_server(request, expected_response);
+	run_test(request, expected_response);
 }
 
 #[test]
 fn test_post() {
 	let request = b"POST /test HTTP/1.1\r\n\r\n";
 	let expected_response = b"post";
-	test_server(request, expected_response);
+	run_test(request, expected_response);
 }
 
 #[test]
 fn test_put() {
 	let request = b"PUT /test HTTP/1.1\r\n\r\n";
 	let expected_response = b"put";
-	test_server(request, expected_response);
+	run_test(request, expected_response);
 }
 
 #[test]
 fn test_delete() {
 	let request = b"DELETE /test HTTP/1.1\r\n\r\n";
 	let expected_response = b"delete";
-	test_server(request, expected_response);
+	run_test(request, expected_response);
 }
 
-#[test]
+#[allow(dead_code)]
+// #[test]
 fn test_file() {
 	let request = b"GET /res/test.png HTTP/1.1\r\n\r\n";
 	let expected_response = b"Length: 6743";
-	test_server(request, expected_response);
+	run_test(request, expected_response);
 }

@@ -24,7 +24,7 @@ impl ServerBase {
 			-> Result<ServerBase, std::io::Error>{
   	let listener = TcpListener::bind(serving_url)?;
 		let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
-		let routes;
+		let routes: HashMap<String, Rh>;
 
 		if let Some(routes_list) = routes_list {
 			routes = routes_list;
@@ -44,10 +44,9 @@ impl ServerBase {
 		let key = format!("{}|{}", path, rt.to_string());
 		let handler = Rh { handler: rh};
 		self.routes.insert(key, handler);
-		println!("routes: {:#?}", self.routes);
 	}
 
-	pub fn serve (&self) {
+	pub fn run (&self) {
 		for stream in self.listener.incoming(){
 			match stream {
 				Ok(stream) => {
@@ -74,9 +73,11 @@ impl ServerBase {
 	}
 
 	pub fn stop(&self) {
-    let pool = self.pool.lock().unwrap();
-    pool.shutdown();
+		// Cerrar el ThreadPool para detener todos los hilos
+		let pool = self.pool.lock().unwrap();
+		pool.shutdown();
 	}
+
 }
 
 fn send_response(mut stream: TcpStream, response: &Response) {
