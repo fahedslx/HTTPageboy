@@ -35,8 +35,8 @@ impl ServerBase {
 
 		return Ok(ServerBase {
 			listener,
-			pool,
 			routes,
+			pool,
 		});
 	}
 
@@ -52,7 +52,7 @@ impl ServerBase {
 				Ok(stream) => {
 					let routes_local = self.routes.clone();
 					let pool = Arc::clone(&self.pool);
-					pool.lock().unwrap().execute(move || {
+					pool.lock().unwrap().run(move || {
 						let request: Request = stream_to_request(&stream);
 						let answer: Option<Response> = handle_request(&request, &routes_local);
 						match answer {
@@ -73,11 +73,10 @@ impl ServerBase {
 	}
 
 	pub fn stop(&self) {
-		// Cerrar el ThreadPool para detener todos los hilos
-		let pool = self.pool.lock().unwrap();
-		pool.shutdown();
+		let mut pool = self.pool.lock().unwrap();
+		println!("server_base stop");
+		pool.stop();
 	}
-
 }
 
 fn send_response(mut stream: TcpStream, response: &Response) {

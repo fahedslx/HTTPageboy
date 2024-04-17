@@ -69,6 +69,7 @@ fn create_server(serving_url: &str, pool_size: u8, routes_list: Option<HashMap<S
 	return server;	
 }
 
+// error seems to be in this function
 fn test_server(request:&[u8], expected_response:&[u8] ) {
 	let mut stream: Option<TcpStream> = None;
 	if let Ok(local_stream) = TcpStream::connect(SERVER_URL) {
@@ -87,13 +88,17 @@ fn test_server(request:&[u8], expected_response:&[u8] ) {
 	);
 	let buffer_string = String::from_utf8_lossy(&buffer).to_string();
 	let expected_response_string = String::from_utf8_lossy(expected_response).to_string();
-	assert!(buffer_string.contains(&expected_response_string));
+	assert!(buffer_string.contains(&expected_response_string),
+		"ASSERT FAILED:\n\nRESPONSE: {} \nEXPECTED: {} \n\n", buffer_string, expected_response_string);
 }
 
 fn run_test(request: &[u8], expected_response: &[u8]) {
 	let server_thread = thread::spawn(|| {
 		let server: ServerBase = create_server(SERVER_URL, POOL_SIZE, None);
 		server.run();
+		thread::sleep(INTERVAL * 2);
+		println!("STOP");
+		server.stop();
 	});
 
 	thread::sleep(INTERVAL);
@@ -106,7 +111,6 @@ fn run_test(request: &[u8], expected_response: &[u8]) {
 fn test_home() {
 	let request = b"GET / HTTP/1.1\r\n\r\n";
 	let expected_response = b"home";
-
 	run_test(request, expected_response);
 }
 
