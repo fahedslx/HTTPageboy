@@ -24,7 +24,7 @@ impl ServerBase {
 			-> Result<ServerBase, std::io::Error>{
   	let listener = TcpListener::bind(serving_url)?;
 		let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
-		let routes;
+		let routes: HashMap<String, Rh>;
 
 		if let Some(routes_list) = routes_list {
 			routes = routes_list;
@@ -35,8 +35,8 @@ impl ServerBase {
 
 		return Ok(ServerBase {
 			listener,
-			pool,
 			routes,
+			pool,
 		});
 	}
 
@@ -44,16 +44,15 @@ impl ServerBase {
 		let key = format!("{}|{}", path, rt.to_string());
 		let handler = Rh { handler: rh};
 		self.routes.insert(key, handler);
-		println!("routes: {:#?}", self.routes);
 	}
 
-	pub fn serve (&self) {
+	pub fn run (&self) {
 		for stream in self.listener.incoming(){
 			match stream {
 				Ok(stream) => {
 					let routes_local = self.routes.clone();
 					let pool = Arc::clone(&self.pool);
-					pool.lock().unwrap().execute(move || {
+					pool.lock().unwrap().run(move || {
 						let request: Request = stream_to_request(&stream);
 						let answer: Option<Response> = handle_request(&request, &routes_local);
 						match answer {
@@ -74,8 +73,9 @@ impl ServerBase {
 	}
 
 	pub fn stop(&self) {
-    let pool = self.pool.lock().unwrap();
-    pool.shutdown();
+		let mut pool = self.pool.lock().unwrap();
+		println!("server_base stop");
+		pool.stop();
 	}
 }
 

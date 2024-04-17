@@ -143,7 +143,7 @@ fn handle_file_request(filepath: &String) -> Response {
 }
 
 pub fn handle_request(request: &Request, routes: &HashMap<String, Rh>) -> Option<Response> {
-	println!("REQUEST:  {}", request);
+	println!("REQUEST:\n{}", request);
 	let mut response: Option<Response> = None;
 
 	let key = format!("{}|{}", request.path, request.method);
