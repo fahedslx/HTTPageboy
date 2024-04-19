@@ -2,9 +2,11 @@
 
 ## Overview
 
-*Still under development. If you are interested, feel free to report issues or even branch the repository.*
+*Still under development. If you are interested, feel free to report issues or branch the repository.*
 
-The server base library provides a basic HTTP server implementation. It can be used to host static files and handle HTTP requests.
+*Yet another HTTP server implementation. Not trying to reinvent the wheel, I just don´t get how to use other existing libs even though I tried, or they would add too many unwanted dependencies to my code.*
+
+The eqeqo server base library aims to provide a basic HTTP server implementation to make it easy to create minimal api servers avoiding external dependencies. It can be used to handle HTTP requests and static files.
 The server will handle requests according to the setup `route`s, and also static files even if the `route` is not defined.
 
 + `Request`s can be any HTTP request.
@@ -27,18 +29,30 @@ Creating a simple server:
 			content: "test-get".as_bytes().to_vec(),
 		}
 	}
+	// Another demo route handler
+	fn demo_handle_test_post (_request: &Request) -> Response {
+		return Response {
+			status: StatusCode::Ok.to_string(),
+			content_type: String::new(),
+			content: "test-post".as_bytes().to_vec(),
+		}
+	}
 
 	fn main() {
+		// Location to run, in this example is defined to local.
 		let serving_url: &str  = "127.0.0.1:7878";
-		let pool_size: u8 = 10;
-		let server = ServerBase::new(serving_url, pool_size, None).unwrap();
-	
-		server.add_route("/test", Rt::GET, demo_handle_test_get);
-	
-		server.serve();
-		// Runs on http://127.0.0.1:7878
-		// It can serve correctly the defined route.
-		// It can also serve static files even if the route is not defined.
+		// Define number of requests the server will be able to run at the same time.
+		let threads_number: u8 = 10;
+		// Create a new server
+		let server = ServerBase::new(serving_url, threads_number, None).unwrap();
+		// Define routes and http method allowed, and link them to request handlers defined previously.
+		server.add_route("/test_route", Rt::GET, demo_handle_test_get);
+		server.add_route("/test_route", Rt::POST, demo_handle_test_post);
+		// Start serving
+		server.run();
+		// ...
+		// Stop and kill the server
+		server.stop();
 	}
 ```
 

@@ -142,8 +142,8 @@ fn test_delete() {
 	run_test(request, expected_response);
 }
 
-#[allow(dead_code)]
-// #[test]
+// #[allow(dead_code)]
+#[test]
 fn test_file() {
 	let request = b"GET /res/test.png HTTP/1.1\r\n\r\n";
 	let expected_response = b"Length: 6743";
