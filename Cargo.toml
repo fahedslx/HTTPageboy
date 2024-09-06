@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["fahedsl <fahedsl@yandex.com>"]
 description = "Library for creating HTTP server basic functionality."
 license = "MIT"
-repository = "https://gitlab.com/numanope/eqeqo/server-base"
+repository = "https://gitlab.com/numanope/eqeqo/bazoj/rs-http-server"
 
 [lib]
 name = "eqeqo_server_base"
