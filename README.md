@@ -1,10 +1,8 @@
 # eqeqo - server_base
 
-## Overview
+Welcome to our HTTP server project! This is a simple server built in Rust that handles HTTP requests and responses.
 
-*Still under development. If you are interested, feel free to report issues or branch the repository.*
-
-*Yet another HTTP server implementation. Not trying to reinvent the wheel, I just don´t get how to use other existing libs even though I tried, or they would add too many unwanted dependencies to my code.*
+*Yet another HTTP server implementation. Not trying to reinvent the wheel, but other existing libs add too many unwanted dependencies to my code.*
 
 The eqeqo server base library aims to provide a basic HTTP server implementation to make it easy to create minimal api servers avoiding external dependencies. It can be used to handle HTTP requests and static files.
 The server will handle requests according to the setup `route`s, and also static files even if the `route` is not defined.
@@ -14,7 +12,7 @@ The server will handle requests according to the setup `route`s, and also static
 + `Response`s type are identified by the content type and are returned as bytes to browsers.
 
 
-## Examples
+## Example
 
 Creating a simple server:
 
@@ -55,9 +53,3 @@ Creating a simple server:
 		server.stop();
 	}
 ```
-
-## License
-
-Copyright (c) 2024 [fahedsl](https://gitlab.com/fahedsl)
-
-MIT License

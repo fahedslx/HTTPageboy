@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use crate::request::Request;
 use crate::response::Response;
 
-
 pub type Rh = RequestHandler;
 
 pub struct RequestHandler {
