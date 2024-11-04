@@ -8,6 +8,7 @@ use crate::request_type::Rt;
 use crate::request_handler::Rh;
 use crate::response::Response;
 use crate::status_code::StatusCode;
+use crate::utils::aux::{ normalize_path, get_content_type_quick };
 
 
 pub struct Request {
@@ -80,60 +81,29 @@ pub fn stream_to_request(mut stream: &TcpStream) -> Request {
 	return request;
 }
 
-fn get_content_type_quick(filename: &String) -> String {
-	let extension: Option<&str> = filename.split('.').last();
-
-	let content_type: &str = match extension {
-		Some("png") => "image/png",
-		Some("jpg") | Some("jpeg") => "image/jpeg",
-		Some("gif") => "image/gif",
-		Some("bmp") => "image/bmp",
-		Some("svg") => "image/svg+xml",
-		Some("webp") => "image/webp",
-		Some("html") => "text/html",
-		Some("css") => "text/css",
-		Some("js") => "application/javascript",
-		Some("json") => "application/json",
-		Some("xml") => "application/xml",
-		Some("pdf") => "application/pdf",
-		Some("doc") | Some("docx") => "application/msword",
-		Some("xls") | Some("xlsx") => "application/vnd.ms-excel",
-		Some("ppt") | Some("pptx") => "application/vnd.ms-powerpoint",
-		Some("zip") => "application/zip",
-		Some("rar") => "application/x-rar-compressed",
-		Some("txt") => "text/plain",
-		Some("csv") => "text/csv",
-		Some("mp3") => "audio/mpeg",
-		Some("wav") => "audio/wav",
-		Some("mp4") => "video/mp4",
-		Some("avi") => "video/x-msvideo",
-		Some("mov") => "video/quicktime",
-		Some("ogg") => "audio/ogg",
-		Some("ogv") => "video/ogg",
-		Some("oga") => "audio/ogg",
-		Some("ico") => "image/x-icon",
-		_ => "application/octet-stream",
-	};
-
-	return content_type.to_string();
-}
-
-fn handle_file_request(filepath: &String) -> Response {
-	let requested_path = format!(".{}", filepath);
-	print!("{}", requested_path);
+fn handle_file_request(filepath: &String, allowed_folders: &Vec<String>) -> Response {
+	let path = normalize_path(filepath);
+	println!("Path: {:?}", path);
+	println!("Folders: {:?}", allowed_folders);
+	
 	let mut status: String = StatusCode::NotFound.to_string();
 	let mut content_type: String = String::new();
 	let mut content: Vec<u8> = Vec::new();
 
-	let data = fs::read(&requested_path);
-	match data {
-		Ok(data) => {
-			status = StatusCode::Ok.to_string();
-			content = data;
-			content_type = get_content_type_quick(&requested_path);
-		}
-		Err(_) => {
-			println!("{}", status);
+	for folder in allowed_folders {
+		if path.starts_with(folder) {
+			let data = fs::read(&path);
+			match data {
+				Ok(data) => {
+					status = StatusCode::Ok.to_string();
+					content = data;
+					content_type = get_content_type_quick(&path);
+				}
+				Err(_) => {
+					println!("{}", status);
+				}
+			}
+			break;
 		}
 	}
 
@@ -142,7 +112,7 @@ fn handle_file_request(filepath: &String) -> Response {
 	};
 }
 
-pub fn handle_request(request: &Request, routes: &HashMap<String, Rh>) -> Option<Response> {
+pub fn handle_request(request: &Request, routes: &HashMap<String, Rh>, files_sources: &Vec<String>) -> Option<Response> {
 	println!("REQUEST:\n{}", request);
 	let mut response: Option<Response> = None;
 
@@ -154,7 +124,7 @@ pub fn handle_request(request: &Request, routes: &HashMap<String, Rh>) -> Option
 	}
 	// If not in router, try with files.
 	else if request.method == Rt::GET.to_string() {
-		response = Some(handle_file_request(&request.path));
+		response = Some(handle_file_request(&request.path, files_sources));
 	}
 
 	return response;

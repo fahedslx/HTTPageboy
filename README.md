@@ -1,13 +1,8 @@
-# eqeqo - server_base
+# eqeqo - HTTPageboy
 
 ## Overview
 
-*Still under development. If you are interested, feel free to report issues or branch the repository.*
-
-*Yet another HTTP server implementation. Not trying to reinvent the wheel, I just don´t get how to use other existing libs even though I tried, or they would add too many unwanted dependencies to my code.*
-
-The eqeqo server base library aims to provide a basic HTTP server implementation to make it easy to create minimal api servers avoiding external dependencies. It can be used to handle HTTP requests and static files.
-The server will handle requests according to the setup `route`s, and also static files even if the `route` is not defined.
+A basic package for handling HTTP request and response transmission on the server side, without additional processing.
 
 + `Request`s can be any HTTP request.
 + `Route`s are formed by the path, the HTTP request type, and the function to handle the request. The function must return a `Response` instance.
@@ -21,7 +16,7 @@ Creating a simple server:
 ```rust
 	use server_base::{ ServerBase, Rt, Request, Response, StatusCode };
 
-	// Demo route handler
+	// Demo route handler (valid empty answer)
 	fn demo_handle_test_get (_request: &Request) -> Response {
 		return Response {
 			status: StatusCode::Ok.to_string(),
@@ -29,7 +24,7 @@ Creating a simple server:
 			content: "test-get".as_bytes().to_vec(),
 		}
 	}
-	// Another demo route handler
+	// Another demo route handler (also empty)
 	fn demo_handle_test_post (_request: &Request) -> Response {
 		return Response {
 			status: StatusCode::Ok.to_string(),
@@ -39,7 +34,7 @@ Creating a simple server:
 	}
 
 	fn main() {
-		// Location to run, in this example is defined to local.
+		// Location to run, in this example is defined to an arbitrary ip and port.
 		let serving_url: &str  = "127.0.0.1:7878";
 		// Define number of requests the server will be able to run at the same time.
 		let threads_number: u8 = 10;
@@ -56,8 +51,11 @@ Creating a simple server:
 	}
 ```
 
+## Dependencies
+
+There are no external dependencies. :)
+
 ## License
 
 Copyright (c) 2024 [fahedsl](https://gitlab.com/fahedsl)
-
-MIT License
+This project is licensed under the MIT License. For more details, refer to the [MIT License](https://opensource.org/licenses/MIT).

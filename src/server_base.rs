@@ -8,12 +8,14 @@ pub use crate::request_type::Rt;
 pub use crate::request_handler::Rh;
 use crate::request::{ Request, stream_to_request, handle_request};
 use crate::response::Response;
+use crate::utils::aux::normalize_path;
 
 
 pub struct ServerBase {
 	listener: TcpListener,
 	pool: Arc<Mutex<ThreadPool>>,
 	routes: HashMap<String, Rh>,
+	files_sources: Vec<String>
 }
 
 impl ServerBase {
@@ -37,6 +39,7 @@ impl ServerBase {
 			listener,
 			routes,
 			pool,
+			files_sources: Vec::new()
 		});
 	}
 
@@ -46,15 +49,21 @@ impl ServerBase {
 		self.routes.insert(key, handler);
 	}
 
+	pub fn add_files_source(&mut self, path: String) {
+		let local_path = normalize_path(&path);
+		self.files_sources.push(local_path);
+	}
+
 	pub fn run (&self) {
 		for stream in self.listener.incoming(){
 			match stream {
 				Ok(stream) => {
 					let routes_local = self.routes.clone();
+					let sources_local = self.files_sources.clone();
 					let pool = Arc::clone(&self.pool);
 					pool.lock().unwrap().run(move || {
 						let request: Request = stream_to_request(&stream);
-						let answer: Option<Response> = handle_request(&request, &routes_local);
+						let answer: Option<Response> = handle_request(&request, &routes_local, &sources_local);
 						match answer {
 							Some(response) => {
 								send_response(stream, &response);
