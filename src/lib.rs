@@ -5,9 +5,7 @@ mod request_handler;
 mod request;
 mod response;
 mod server_base;
-mod utils{
-	pub mod aux;
-}
+mod utils;
 
 pub use status_code::StatusCode;
 pub use request_type::Rt;

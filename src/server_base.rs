@@ -8,7 +8,7 @@ pub use crate::request_type::Rt;
 pub use crate::request_handler::Rh;
 use crate::request::{ Request, stream_to_request, handle_request};
 use crate::response::Response;
-use crate::utils::aux::normalize_path;
+use crate::utils::absolutize_path;
 
 
 pub struct ServerBase {
@@ -50,7 +50,7 @@ impl ServerBase {
 	}
 
 	pub fn add_files_source(&mut self, path: String) {
-		let local_path = normalize_path(&path);
+		let local_path = absolutize_path(&path);
 		self.files_sources.push(local_path);
 	}
 

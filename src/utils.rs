@@ -1,4 +1,4 @@
-pub fn normalize_path(path: &String) -> String {
+pub fn absolutize_path(path: &String) -> String {
 	let current_dir: String = std::env::current_dir().unwrap().to_str().unwrap().to_string();
 	let normalized_path: String;
 	if path.starts_with('/') {

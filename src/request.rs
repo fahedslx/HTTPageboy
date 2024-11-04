@@ -8,7 +8,7 @@ use crate::request_type::Rt;
 use crate::request_handler::Rh;
 use crate::response::Response;
 use crate::status_code::StatusCode;
-use crate::utils::aux::{ normalize_path, get_content_type_quick };
+use crate::utils::{ absolutize_path, get_content_type_quick };
 
 
 pub struct Request {
@@ -82,7 +82,7 @@ pub fn stream_to_request(mut stream: &TcpStream) -> Request {
 }
 
 fn handle_file_request(filepath: &String, allowed_folders: &Vec<String>) -> Response {
-	let path = normalize_path(filepath);
+	let path = absolutize_path(filepath);
 	println!("Path: {:?}", path);
 	println!("Folders: {:?}", allowed_folders);
 	
