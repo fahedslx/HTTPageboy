@@ -3,7 +3,6 @@ use std::sync::{ Arc, Mutex };
 use std::sync::mpsc::{ Sender, Receiver, channel, SendError };
 use std::thread::{ spawn, JoinHandle };
 
-
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
 enum Message {
@@ -11,13 +10,11 @@ enum Message {
 	Terminate,
 }
 
-
 #[allow(dead_code)]
 struct Worker {
 	id: usize,
 	thread: Option<JoinHandle<()>>,
 }
-
 
 impl Worker {
 	fn new(id: usize, receiver: Arc<Mutex<Receiver<Message>>>) -> Worker {
@@ -47,19 +44,16 @@ impl Worker {
 	}
 }
 
-
 pub struct ThreadPool{
 	workers: Vec<Worker>,
 	sender: Sender<Message>,
 }
-
 
 impl Display for ThreadPool {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		write!(f, "ThreadPool {}", self.workers.len())
 	}
 }
-
 
 impl ThreadPool {
 	pub fn new(size: usize) -> ThreadPool {
@@ -75,7 +69,6 @@ impl ThreadPool {
 
 		ThreadPool { workers, sender }
 	}
-
 
 	pub fn run<F>(&self, _f: F)
 		where
@@ -104,7 +97,6 @@ impl ThreadPool {
 	}
 
 }
-
 
 impl Drop for ThreadPool {
 	fn drop(&mut self) {
