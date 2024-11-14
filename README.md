@@ -1,7 +1,5 @@
 # eqeqo - HTTPageboy
 
-Welcome to our HTTP server project! This is a simple server built in Rust that handles HTTP requests and responses.
-
 A basic package for handling HTTP request and response transmission on the server side, without additional processing.
 
 + `Request`s can be any HTTP request.
@@ -53,7 +51,8 @@ Creating a simple server:
 
 ## Dependencies
 
-There are no external dependencies. :)
+There are no external dependencies for production. :)
+There are two deps for testing only.
 
 ## License
 
