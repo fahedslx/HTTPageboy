@@ -12,7 +12,7 @@ A basic package for handling HTTP request and response transmission on the serve
 Creating a simple server:
 
 ```rust
-	use server_base::{ ServerBase, Rt, Request, Response, StatusCode };
+	use server::{ Server, Rt, Request, Response, StatusCode };
 
 	// Demo route handler (valid empty answer)
 	fn demo_handle_test_get (_request: &Request) -> Response {
@@ -37,7 +37,7 @@ Creating a simple server:
 		// Define number of requests the server will be able to run at the same time.
 		let threads_number: u8 = 10;
 		// Create a new server
-		let server = ServerBase::new(serving_url, threads_number, None).unwrap();
+		let server = Server::new(serving_url, threads_number, None).unwrap();
 		// Define routes and http method allowed, and link them to request handlers defined previously.
 		server.add_route("/test_route", Rt::GET, demo_handle_test_get);
 		server.add_route("/test_route", Rt::POST, demo_handle_test_post);

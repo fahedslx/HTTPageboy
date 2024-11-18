@@ -11,19 +11,19 @@ use crate::response::Response;
 use crate::utils::absolutize_path;
 
 
-pub struct ServerBase {
+pub struct Server {
 	listener: TcpListener,
 	pool: Arc<Mutex<ThreadPool>>,
 	routes: HashMap<String, Rh>,
 	files_sources: Vec<String>
 }
 
-impl ServerBase {
+impl Server {
 	pub fn new(
 			serving_url: &str,
 			pool_size: u8,
 			routes_list: Option<HashMap<String, Rh>>)
-			-> Result<ServerBase, std::io::Error>{
+			-> Result<Server, std::io::Error>{
   	let listener = TcpListener::bind(serving_url)?;
 		let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
 		let routes: HashMap<String, Rh>;
@@ -35,7 +35,7 @@ impl ServerBase {
 			routes = HashMap::new();
 		}
 
-		return Ok(ServerBase {
+		return Ok(Server {
 			listener,
 			routes,
 			pool,
@@ -83,7 +83,7 @@ impl ServerBase {
 
 	pub fn stop(&self) {
 		let mut pool = self.pool.lock().unwrap();
-		println!("server_base stop");
+		println!("server stop");
 		pool.stop();
 	}
 }

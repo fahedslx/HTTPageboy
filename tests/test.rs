@@ -6,19 +6,19 @@ mod tests {
 	use std::net::TcpStream;
 	use std::thread;
 	use std::time::Duration;
-	extern crate eqeqo_server_base;
-	use eqeqo_server_base::{ ServerBase, Rt, Request, Response, StatusCode };
-	
+	extern crate httpageboy;
+	use httpageboy::{ Server, Rt, Request, Response, StatusCode };
+
 	const SERVER_URL: &str  = "127.0.0.1:7878";
 	const POOL_SIZE: u8 = 10;
 	const INTERVAL: Duration = Duration::from_millis(250);
 
 	static INIT: Once = Once::new();
-	
+
 	fn setup() {
 		INIT.call_once(|| {
 			thread::spawn(|| {
-				let mut server: ServerBase = ServerBase::new(SERVER_URL, POOL_SIZE, None)
+				let mut server: Server = Server::new(SERVER_URL, POOL_SIZE, None)
 					.expect("Failed to create server");
 				server.add_route("/", Rt::GET, demo_handle_home);
 				server.add_route("/test", Rt::GET, demo_handle_get);
