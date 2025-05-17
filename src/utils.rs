@@ -1,20 +1,3 @@
-pub fn absolutize_path(path: &String) -> String {
-	let current_dir: String = std::env::current_dir().unwrap().to_str().unwrap().to_string();
-	let normalized_path: String;
-	if path.starts_with('/') {
-		normalized_path = path.to_string();
-	}
-	else if path.starts_with("./") {
-		normalized_path = current_dir.to_string() + &path[1..];
-	}
-	else {
-		normalized_path = current_dir.to_string() + "/" + &path;
-	}
-
-	return normalized_path;
-}
-
-
 pub fn get_content_type_quick(filename: &String) -> String {
 	let extension: Option<&str> = filename.split('.').last();
 
@@ -52,3 +35,18 @@ pub fn get_content_type_quick(filename: &String) -> String {
 
 	return content_type.to_string();
 }
+
+pub fn secure_path(base: &str, req_path: &str) -> Option<String> {
+	let path = req_path.split('?').next().unwrap_or("");
+	let mut full = std::path::Path::new(base).join(&path[1..]);
+	if full.is_dir() {
+	  full = full.join("index.html");
+	}
+	if let Ok(canon) = full.canonicalize() {
+	  if canon.starts_with(base) {
+		return Some(canon.to_string_lossy().to_string());
+	  }
+	}
+	None
+  }
+  

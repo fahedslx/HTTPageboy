@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::{ Display, Formatter, Result };
-use std::fs;
 use std::io::Read;
 use std::net::TcpStream;
 
@@ -8,7 +7,7 @@ use crate::request_type::Rt;
 use crate::request_handler::Rh;
 use crate::response::Response;
 use crate::status_code::StatusCode;
-use crate::utils::{ absolutize_path, get_content_type_quick };
+use crate::utils::{ secure_path, get_content_type_quick };
 
 
 pub struct Request {
@@ -81,37 +80,25 @@ pub fn stream_to_request(mut stream: &TcpStream) -> Request {
 	return request;
 }
 
-fn handle_file_request(filepath: &String, allowed_folders: &Vec<String>) -> Response {
-	let path = absolutize_path(filepath);
-	println!("Path: {:?}", path);
-	println!("Folders: {:?}", allowed_folders);
-	
-	let mut status: String = StatusCode::NotFound.to_string();
-	let mut content_type: String = String::new();
-	let mut content: Vec<u8> = Vec::new();
-
-	for folder in allowed_folders {
-		if path.starts_with(folder) {
-			let data = fs::read(&path);
-			match data {
-				Ok(data) => {
-					status = StatusCode::Ok.to_string();
-					content = data;
-					content_type = get_content_type_quick(&path);
-				}
-				Err(_) => {
-					println!("{}", status);
-				}
-			}
-			break;
+// En request.rs, handle_file_request:
+pub fn handle_file_request(path: &String, allowed: &Vec<String>) -> Response {
+	for base in allowed {
+	  if let Some(real_path) = secure_path(base, path.as_str()) {
+		match std::fs::read(&real_path) {
+		  Ok(data) => {
+			return Response {
+			  status: StatusCode::Ok.to_string(),
+			  content_type: get_content_type_quick(&real_path),
+			  content: data,
+			};
+		  }
+		  Err(_) => break,
 		}
+	  }
 	}
-
-	return Response{
-		status, content_type, content
-	};
-}
-
+	Response::new() // 404
+  }
+  
 pub fn handle_request(request: &Request, routes: &HashMap<String, Rh>, files_sources: &Vec<String>) -> Option<Response> {
 	println!("REQUEST:\n{}", request);
 	let mut response: Option<Response> = None;
