@@ -1,4 +1,4 @@
-# eqeqo - HTTPageboy
+# HTTPageboy
 
 A basic package for handling HTTP request and response transmission on the server side, without additional processing.
 
@@ -12,41 +12,41 @@ A basic package for handling HTTP request and response transmission on the serve
 Creating a simple server:
 
 ```rust
-	use server::{ Server, Rt, Request, Response, StatusCode };
+use server::{ Server, Rt, Request, Response, StatusCode };
 
-	// Demo route handler (valid empty answer)
-	fn demo_handle_test_get (_request: &Request) -> Response {
-		return Response {
-			status: StatusCode::Ok.to_string(),
-			content_type: String::new(),
-			content: "test-get".as_bytes().to_vec(),
-		}
+// Demo route handler (this is valid empty answer)
+fn demo_handle_test_get (_request: &Request) -> Response {
+	return Response {
+		status: StatusCode::Ok.to_string(),
+		content_type: String::new(),
+		content: "test-get".as_bytes().to_vec(),
 	}
-	// Another demo route handler (also empty)
-	fn demo_handle_test_post (_request: &Request) -> Response {
-		return Response {
-			status: StatusCode::Ok.to_string(),
-			content_type: String::new(),
-			content: "test-post".as_bytes().to_vec(),
-		}
+}
+// Another demo route handler (also empty)
+fn demo_handle_test_post (_request: &Request) -> Response {
+	return Response {
+		status: StatusCode::Ok.to_string(),
+		content_type: String::new(),
+		content: "test-post".as_bytes().to_vec(),
 	}
+}
 
-	fn main() {
-		// Location to run, in this example is defined to an arbitrary ip and port.
-		let serving_url: &str  = "127.0.0.1:7878";
-		// Define number of requests the server will be able to run at the same time.
-		let threads_number: u8 = 10;
-		// Create a new server
-		let server = Server::new(serving_url, threads_number, None).unwrap();
-		// Define routes and http method allowed, and link them to request handlers defined previously.
-		server.add_route("/test_route", Rt::GET, demo_handle_test_get);
-		server.add_route("/test_route", Rt::POST, demo_handle_test_post);
-		// Start serving
-		server.run();
-		// ...
-		// Stop and kill the server
-		server.stop();
-	}
+fn main() {
+	// Location to run, in this example it's defined to an arbitrary ip and port.
+	let serving_url: &str  = "127.0.0.1:7878";
+	// Define number of requests the server will be able to run at the same time.
+	let threads_number: u8 = 10;
+	// Create a new server
+	let server = Server::new(serving_url, threads_number, None).unwrap();
+	// Define routes and http method allowed, and link them to request handlers defined previously.
+	server.add_route("/test_route", Rt::GET, demo_handle_test_get);
+	server.add_route("/test_route", Rt::POST, demo_handle_test_post);
+	// Start serving
+	server.run();
+	// ...
+	// Stop and kill the server
+	server.stop();
+}
 ```
 
 ## Dependencies

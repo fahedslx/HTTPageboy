@@ -1,15 +1,17 @@
-mod threadpool;
-mod status_code;
-mod request_type;
-mod request_handler;
 mod request;
+mod request_handler;
+mod request_type;
 mod response;
 mod server;
+mod status_code;
+mod threadpool;
 mod utils;
 
-pub use status_code::StatusCode;
-pub use request_type::Rt;
+pub use request::{handle_request, stream_to_request, Request};
 pub use request_handler::Rh;
-pub use request::{ Request, stream_to_request, handle_request};
+pub use request_type::Rt;
 pub use response::Response;
 pub use server::Server;
+pub use status_code::StatusCode;
+
+pub type Handler = fn(&Request) -> Response;
