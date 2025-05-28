@@ -38,7 +38,8 @@ pub fn get_content_type_quick(filename: &String) -> String {
 
 pub fn secure_path(base: &str, req_path: &str) -> Option<String> {
   let path = req_path.split('?').next().unwrap_or("");
-  let mut full = std::path::Path::new(base).join(&path[1..]);
+  let path = path.trim_start_matches('/');
+  let mut full = std::path::Path::new(base).join(path);
   println!("🔍 secure_path base: {:?}, full: {:?}", base, full);
   if full.is_dir() {
     full = full.join("index.html");

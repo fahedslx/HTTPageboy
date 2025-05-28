@@ -44,11 +44,6 @@ mod tests {
     stream.write_all(local_request).unwrap();
     let mut buffer = Vec::new();
     stream.read_to_end(&mut buffer).unwrap();
-    // println!(
-    //   "\n\nRESPONSE: {:#?} \nEXPECTED: {:#?} \n\n",
-    //   String::from_utf8_lossy(&buffer),
-    //   String::from_utf8_lossy(&expected_response)
-    // );
     let buffer_string = String::from_utf8_lossy(&buffer).to_string();
     let expected_response_string = String::from_utf8_lossy(expected_response).to_string();
     assert!(
@@ -148,15 +143,14 @@ mod tests {
 
   #[test]
   fn test_file_true() {
-    // Existing file
-    let request = b"GET ./res/test.png HTTP/1.1\r\n\r\n";
+    let request = b"GET /test.png HTTP/1.1\r\nHost: localhost\r\n\r\n";
     let expected_response = b"HTTP/1.1 200 OK";
     run_test(request, expected_response);
   }
 
   #[test]
   fn test_file_false() {
-    let request = b"GET /res/test1.png HTTP/1.1\r\n\r\n";
+    let request = b"GET /test1.png HTTP/1.1\r\n\r\n";
     let expected_response = b"HTTP/1.1 404 Not Found";
     run_test(request, expected_response);
   }

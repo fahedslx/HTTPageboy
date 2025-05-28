@@ -13,8 +13,8 @@ impl Default for Response {
   fn default() -> Self {
     Response {
       status: StatusCode::NotFound.to_string(),
-      content_type: String::new(),
-      content: b"Not found.".to_vec(),
+      content_type: "text/plain".to_string(),
+      content: b"404 Not Found".to_vec(),
     }
   }
 }
