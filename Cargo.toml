@@ -1,6 +1,6 @@
 [package]
 name = "httpageboy"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2021"
 authors = ["fahedsl <fahedsl@yandex.com>"]
 description = "Handle HTTP request/response transmission on the server side without processing."
