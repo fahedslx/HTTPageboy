@@ -4,13 +4,13 @@ use std::io::Read;
 use std::net::TcpStream;
 
 use crate::request_handler::Rh;
-use crate::request_type::Rt;
+use crate::request_type::{RequestType, Rt};
 use crate::response::Response;
 use crate::status_code::StatusCode;
 use crate::utils::{get_content_type_quick, secure_path};
 
 pub struct Request {
-  pub method: String,
+  pub method: RequestType,
   pub path: String,
   pub version: String,
   pub headers: Vec<(String, String)>,
@@ -53,7 +53,7 @@ fn request_disassembly(request: String) -> Request {
   let headers = parsed_headers;
   let body = lines[blank_line_index + 1..].join("\r\n");
   let split_request: Vec<&str> = request.split_whitespace().collect();
-  let method: String = split_request[0].to_string();
+  let method = RequestType::from_str(split_request[0]);
   let path: String = split_request[1].to_string();
   let version: String = split_request[2].to_string();
 
@@ -94,16 +94,15 @@ pub fn handle_file_request(path: &String, allowed: &[String]) -> Response {
 
 pub fn handle_request(
   req: &Request,
-  routes: &HashMap<String, Rh>,
+  routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  // println!("REQUEST:\n{}", req);
-  let key = format!("{}|{}", req.path, req.method);
+  let key = (req.method.clone(), req.path.clone());
 
   let mut output = None;
   if let Some(h) = routes.get(&key) {
     output = Some((h.handler)(req));
-  } else if req.method == Rt::GET.to_string() {
+  } else if req.method == Rt::GET {
     output = Some(handle_file_request(&req.path, file_bases));
   }
   output
