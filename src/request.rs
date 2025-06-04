@@ -67,9 +67,8 @@ fn request_disassembly(request: String) -> Request {
 }
 
 pub fn stream_to_request(mut stream: &TcpStream) -> Request {
-  let mut buf = [0; 1024];
-  stream.read(&mut buf).unwrap();
-  let raw = String::from_utf8_lossy(&buf).to_string();
+  let mut raw = String::new();
+  stream.read_to_string(&mut raw).unwrap();
   request_disassembly(raw)
 }
 
