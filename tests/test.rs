@@ -42,8 +42,15 @@ mod tests {
 
     let local_request = request;
     stream.write_all(local_request).unwrap();
+    stream.shutdown(std::net::Shutdown::Write).unwrap();
     let mut buffer = Vec::new();
     stream.read_to_end(&mut buffer).unwrap();
+    println!(
+      "\n\nRESPONSE: {:#?} \nEXPECTED: {:#?} \n\n",
+      String::from_utf8_lossy(&buffer),
+      String::from_utf8_lossy(&expected_response)
+    );
+
     let buffer_string = String::from_utf8_lossy(&buffer).to_string();
     let expected_response_string = String::from_utf8_lossy(expected_response).to_string();
     assert!(
