@@ -14,4 +14,6 @@ pub use response::Response;
 pub use server::Server;
 pub use status_code::StatusCode;
 
+pub mod test_utils;
+
 pub type Handler = fn(&Request) -> Response;
