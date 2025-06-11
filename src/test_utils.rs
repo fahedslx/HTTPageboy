@@ -10,8 +10,12 @@ pub const POOL_SIZE: u8 = 10;
 pub const INTERVAL: Duration = Duration::from_millis(250);
 static INIT: Once = Once::new();
 
-pub fn setup_test_server(server: Server) {
+pub fn setup_test_server<F>(server_factory: F)
+where
+  F: FnOnce() -> Server + Send + 'static,
+{
   INIT.call_once(|| {
+    let server = server_factory();
     thread::spawn(move || {
       server.run();
     });
