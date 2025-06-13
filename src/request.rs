@@ -15,6 +15,32 @@ pub struct Request {
   pub version: String,
   pub headers: Vec<(String, String)>,
   pub body: String,
+  pub params: HashMap<String, String>,
+}
+
+impl Request {
+  fn extract_path_params(route: &str, path: &str) -> HashMap<String, String> {
+    let mut params = HashMap::new();
+
+    let route_parts: Vec<&str> = route.split('/').collect();
+    let path_parts: Vec<&str> = path.split('/').collect();
+
+    if route_parts.len() != path_parts.len() {
+      return params;
+    }
+
+    for (i, part) in route_parts.iter().enumerate() {
+      if part.starts_with('{') && part.ends_with('}') {
+        let param_name = part.trim_matches(|c| c == '{' || c == '}').to_string();
+        let param_value = path_parts[i].to_string();
+        params.insert(param_name, param_value);
+      } else if *part != path_parts[i] {
+        return params;
+      }
+    }
+
+    params
+  }
 }
 
 impl Display for Request {
@@ -27,11 +53,15 @@ impl Display for Request {
   }
 }
 
-fn request_disassembly(request: String) -> Request {
-  // Divide la solicitud en líneas
+pub fn stream_to_request(mut stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>) -> Request {
+  let mut raw = String::new();
+  stream.read_to_string(&mut raw).unwrap();
+  request_disassembly(raw, routes)
+}
+
+fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> Request {
   let lines: Vec<&str> = request.split("\r\n").collect();
 
-  // Busca el índice de la línea en blanco que separa los headers del body
   let mut blank_line_index = 0;
   for (i, line) in lines.iter().enumerate() {
     if line.trim().is_empty() {
@@ -57,19 +87,25 @@ fn request_disassembly(request: String) -> Request {
   let path: String = split_request[1].to_string();
   let version: String = split_request[2].to_string();
 
+  let mut params: HashMap<String, String> = HashMap::new();
+  for ((route_method, route_path), _) in routes {
+    if *route_method == method {
+      let extracted_params = Request::extract_path_params(route_path, &path);
+      if !extracted_params.is_empty() {
+        params = extracted_params;
+        break;
+      }
+    }
+  }
+
   return Request {
     method,
     path,
     version,
     headers,
     body,
+    params,
   };
-}
-
-pub fn stream_to_request(mut stream: &TcpStream) -> Request {
-  let mut raw = String::new();
-  stream.read_to_string(&mut raw).unwrap();
-  request_disassembly(raw)
 }
 
 pub fn handle_file_request(path: &String, allowed: &[String]) -> Response {
@@ -91,6 +127,7 @@ pub fn handle_file_request(path: &String, allowed: &[String]) -> Response {
   Response::new()
 }
 
+//TODO: manejo de diferentes tipos de solicitudes HTTP
 pub fn handle_request(
   req: &Request,
   routes: &HashMap<(Rt, String), Rh>,
@@ -104,5 +141,10 @@ pub fn handle_request(
   } else if req.method == Rt::GET {
     output = Some(handle_file_request(&req.path, file_bases));
   }
-  output
+
+  if req.method == Rt::GET {o
+    return Some(handle_file_request(&req.path, file_bases));
+  }
+
+  None
 }
