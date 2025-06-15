@@ -118,3 +118,27 @@ fn demo_handle_delete(_request: &Request) -> Response {
     content: "delete".as_bytes().to_vec(),
   }
 }
+
+#[test]
+fn test_post_no_route() {
+  setup_test_server(|| create_test_server());
+  let request = b"POST /unknown HTTP/1.1\r\n\r\n";
+  let expected_response = b"POST request received without a specific route";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_put_no_route() {
+  setup_test_server(|| create_test_server());
+  let request = b"PUT /unknown HTTP/1.1\r\n\r\n";
+  let expected_response = b"PUT request received without a specific route";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_delete_no_route() {
+  setup_test_server(|| create_test_server());
+  let request = b"DELETE /unknown HTTP/1.1\r\n\r\n";
+  let expected_response = b"DELETE request received without a specific route";
+  run_test(request, expected_response);
+}

@@ -23,7 +23,7 @@ where
   });
 }
 
-pub fn test_server_request(request: &[u8], expected_response: &[u8]) {
+pub fn test_server_request(request: &[u8], expected_response: &[u8]) -> String {
   let mut stream = TcpStream::connect(SERVER_URL).expect("Failed to connect to server");
 
   stream.write_all(request).unwrap();
@@ -41,8 +41,9 @@ pub fn test_server_request(request: &[u8], expected_response: &[u8]) {
     buffer_string,
     expected_response_string
   );
+  buffer_string
 }
 
-pub fn run_test(request: &[u8], expected_response: &[u8]) {
-  test_server_request(request, expected_response);
+pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {
+  test_server_request(request, expected_response)
 }

@@ -127,7 +127,6 @@ pub fn handle_file_request(path: &String, allowed: &[String]) -> Response {
   Response::new()
 }
 
-//TODO: manejo de diferentes tipos de solicitudes HTTP
 pub fn handle_request(
   req: &Request,
   routes: &HashMap<(Rt, String), Rh>,
@@ -138,12 +137,28 @@ pub fn handle_request(
   let mut output = None;
   if let Some(h) = routes.get(&key) {
     output = Some((h.handler)(req));
-  } else if req.method == Rt::GET {
-    output = Some(handle_file_request(&req.path, file_bases));
+  } else {
+    match req.method {
+      Rt::GET => {
+        output = Some(handle_file_request(&req.path, file_bases));
+      }
+      Rt::POST => {
+        output = Some(handle_file_request(&req.path, file_bases));
+      }
+      Rt::PUT => {
+        output = Some(handle_file_request(&req.path, file_bases));
+      }
+      Rt::DELETE => {
+        output = Some(handle_file_request(&req.path, file_bases));
+      }
+      _ => {
+        println!("Unsupported request method");
+      }
+    }
   }
 
-  if req.method == Rt::GET {o
-    return Some(handle_file_request(&req.path, file_bases));
+  if let Some(response) = output {
+    return Some(response);
   }
 
   None
