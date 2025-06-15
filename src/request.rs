@@ -134,27 +134,11 @@ pub fn handle_request(
 ) -> Option<Response> {
   let key = (req.method.clone(), req.path.clone());
 
-  let mut output = None;
+  let output;
   if let Some(h) = routes.get(&key) {
     output = Some((h.handler)(req));
   } else {
-    match req.method {
-      Rt::GET => {
-        output = Some(handle_file_request(&req.path, file_bases));
-      }
-      Rt::POST => {
-        output = Some(handle_file_request(&req.path, file_bases));
-      }
-      Rt::PUT => {
-        output = Some(handle_file_request(&req.path, file_bases));
-      }
-      Rt::DELETE => {
-        output = Some(handle_file_request(&req.path, file_bases));
-      }
-      _ => {
-        println!("Unsupported request method");
-      }
-    }
+    output = Some(handle_file_request(&req.path, file_bases));
   }
 
   if let Some(response) = output {
