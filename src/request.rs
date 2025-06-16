@@ -138,7 +138,13 @@ pub fn handle_request(
   if let Some(h) = routes.get(&key) {
     output = Some((h.handler)(req));
   } else {
-    output = Some(handle_file_request(&req.path, file_bases));
+    output = Some(ha
+        ,
+      n
+        d,
+
+        ,
+      le_file_request(&req.path, file_bases));
   }
 
   if let Some(response) = output {
