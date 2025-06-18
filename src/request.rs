@@ -132,20 +132,25 @@ pub fn handle_request(
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  let key = (req.method.clone(), req.path.clone());
-
-  let output;
-  if let Some(h) = routes.get(&key) {
-    output = Some((h.handler)(req));
-  } else {
-    output = Some(ha
-        ,
-      n
-        d,
-
-        ,
-      le_file_request(&req.path, file_bases));
+  for ((route_method, route_path), handler) in routes {
+    if *route_method == req.method {
+      let extracted_params = Request::extract_path_params(route_path, &req.path);
+      if !extracted_params.is_empty() {
+        // Route has parameters
+        if extracted_params == req.params {
+          return Some((handler.handler)(req));
+        }
+      } else {
+        // Route has no parameters
+        if route_path == &req.path {
+          return Some((handler.handler)(req));
+        }
+      }
+    }
   }
+
+  // If no matching route is found, try to serve a file
+  let output = Some(handle_file_request(&req.path, file_bases));
 
   if let Some(response) = output {
     return Some(response);
