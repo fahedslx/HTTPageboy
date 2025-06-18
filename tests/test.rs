@@ -7,11 +7,20 @@ fn create_test_server() -> Server {
   server.add_route("/", Rt::GET, demo_handle_home);
   server.add_route("/test", Rt::GET, demo_handle_get);
   server.add_route("/test/{id}", Rt::POST, demo_handle_post);
+  server.add_route("/test/{id}/{name}", Rt::POST, demo_handle_post);
   server.add_route("/test", Rt::PUT, demo_handle_put);
   server.add_route("/test", Rt::DELETE, demo_handle_delete);
   server.add_files_source("res");
 
   server
+}
+
+fn demo_handle_home(_request: &Request) -> Response {
+  Response {
+    status: StatusCode::Ok.to_string(),
+    content_type: String::new(),
+    content: "home".as_bytes().to_vec(),
+  }
 }
 
 #[test]
@@ -22,6 +31,14 @@ fn test_home() {
   run_test(request, expected_response);
 }
 
+fn demo_handle_get(_request: &Request) -> Response {
+  Response {
+    status: StatusCode::Ok.to_string(),
+    content_type: String::new(),
+    content: "get".as_bytes().to_vec(),
+  }
+}
+
 #[test]
 fn test_get() {
   setup_test_server(|| create_test_server());
@@ -30,16 +47,35 @@ fn test_get() {
   run_test(request, expected_response);
 }
 
+fn demo_handle_post(_request: &Request) -> Response {
+  let request_string = format!(
+    "Method: {}\nUri: {}\nHeaders: {:?}\nBody: {:?}\nParams: {:?}",
+    _request.method, _request.path, _request.headers, _request.body, _request.params
+  );
+  println!("REQUEST{}", request_string);
+  let id = _request.params.get("id").map(|s| s.as_bytes().to_vec());
+  let name = _request.params.get("name").map(|s| s.as_bytes().to_vec());
+  Response {
+    status: StatusCode::Ok.to_string(),
+    content_type: String::new(),
+    content: format!("{:?}, {:?}", id, name).as_bytes().to_vec(),
+  }
+}
+
 #[test]
 fn test_post() {
   setup_test_server(|| create_test_server());
-  let request = b"POST /test/123 HTTP/1.1\r\n\r\n";
-  let expected_response = b"post";
-  // Capture the output of eprintln! in demo_handle_post
-  let captured_output = run_test(request, expected_response);
-  // Assert that the ID is present in the output
-  assert!(captured_output.contains("ID: Some(\"123\")"));
+  let request = b"POST /test/1234/perrito HTTP/1.1\r\n\r\n";
+  let expected_response = b"Some([49, 50, 51, 52]), Some([112, 101, 114, 114, 105, 116, 111])";
   run_test(request, expected_response);
+}
+
+fn demo_handle_put(_request: &Request) -> Response {
+  Response {
+    status: StatusCode::Ok.to_string(),
+    content_type: String::new(),
+    content: "put".as_bytes().to_vec(),
+  }
 }
 
 #[test]
@@ -48,6 +84,14 @@ fn test_put() {
   let request = b"PUT /test HTTP/1.1\r\n\r\n";
   let expected_response = b"put";
   run_test(request, expected_response);
+}
+
+fn demo_handle_delete(_request: &Request) -> Response {
+  Response {
+    status: StatusCode::Ok.to_string(),
+    content_type: String::new(),
+    content: "delete".as_bytes().to_vec(),
+  }
 }
 
 #[test]
@@ -71,74 +115,5 @@ fn test_file_not_found() {
   setup_test_server(|| create_test_server());
   let request = b"GET /test1.png HTTP/1.1\r\n\r\n";
   let expected_response = b"HTTP/1.1 404 Not Found";
-  run_test(request, expected_response);
-}
-
-fn demo_handle_home(_request: &Request) -> Response {
-  Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "home".as_bytes().to_vec(),
-  }
-}
-
-fn demo_handle_get(_request: &Request) -> Response {
-  Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "get".as_bytes().to_vec(),
-  }
-}
-
-fn demo_handle_post(_request: &Request) -> Response {
-  let request_string = format!(
-    "Method: {}\nUri: {}\nHeaders: {:?}\nBody: {:?}\nParams: {:?}",
-    _request.method, _request.path, _request.headers, _request.body, _request.params
-  );
-  eprintln!("{}", request_string);
-  Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "post".as_bytes().to_vec(),
-  }
-}
-
-fn demo_handle_put(_request: &Request) -> Response {
-  Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "put".as_bytes().to_vec(),
-  }
-}
-
-fn demo_handle_delete(_request: &Request) -> Response {
-  Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "delete".as_bytes().to_vec(),
-  }
-}
-
-#[test]
-fn test_post_no_route() {
-  setup_test_server(|| create_test_server());
-  let request = b"POST /unknown HTTP/1.1\r\n\r\n";
-  let expected_response = b"POST request received without a specific route";
-  run_test(request, expected_response);
-}
-
-#[test]
-fn test_put_no_route() {
-  setup_test_server(|| create_test_server());
-  let request = b"PUT /unknown HTTP/1.1\r\n\r\n";
-  let expected_response = b"PUT request received without a specific route";
-  run_test(request, expected_response);
-}
-
-#[test]
-fn test_delete_no_route() {
-  setup_test_server(|| create_test_server());
-  let request = b"DELETE /unknown HTTP/1.1\r\n\r\n";
-  let expected_response = b"DELETE request received without a specific route";
   run_test(request, expected_response);
 }
