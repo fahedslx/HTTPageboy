@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result};
 use std::io::Read;
 use std::net::TcpStream;
-use std::process::Output;
 
 use crate::request_handler::Rh;
 use crate::request_type::{RequestType, Rt};
@@ -64,6 +63,7 @@ pub fn stream_to_request(mut stream: &TcpStream, routes: &HashMap<(Rt, String), 
 fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> Request {
   let lines: Vec<&str> = request.split("\r\n").collect();
 
+  // Headers
   let mut blank_line_index = 0;
   for (i, line) in lines.iter().enumerate() {
     if line.trim().is_empty() {
@@ -71,7 +71,6 @@ fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> R
       break;
     }
   }
-
   let temp_headers = lines[..blank_line_index].join("\r\n");
   let mut parsed_headers = Vec::new();
   for header_line in temp_headers.lines() {
@@ -89,9 +88,8 @@ fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> R
   let mut path: String = split_request[1].to_string();
   let version: String = split_request[2].to_string();
 
+  // Params
   let mut params: HashMap<String, String> = HashMap::new();
-
-  // Parse query parameters
   if let Some(query_start) = path.find('?') {
     let base_path = path[..query_start].to_string();
     let query_string = path[query_start + 1..].to_string();
