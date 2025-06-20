@@ -6,6 +6,7 @@ fn create_test_server() -> Server {
 
   server.add_route("/", Rt::GET, demo_handle_home);
   server.add_route("/test", Rt::GET, demo_handle_get);
+  server.add_route("/test", Rt::POST, demo_handle_post);
   server.add_route("/test/{id}", Rt::POST, demo_handle_post);
   server.add_route("/test/{id}/{name}", Rt::POST, demo_handle_post);
   server.add_route("/test", Rt::PUT, demo_handle_put);
@@ -60,7 +61,6 @@ fn demo_handle_post(_request: &Request) -> Response {
     "Method: {}\nUri: {}\nHeaders: {:?}\nBody: {:?}\nParams: {:?}",
     _request.method, _request.path, _request.headers, _request.body, _request.params
   );
-  println!("REQUEST{}", request_string);
   let id = _request.params.get("id").map(|s| s.clone());
   let name = _request.params.get("name").map(|s| s.clone());
   Response {

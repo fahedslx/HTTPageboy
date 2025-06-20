@@ -65,7 +65,7 @@ impl Server {
           let sources_local = self.files_sources.clone();
           let close_flag = self.auto_close;
           let pool = Arc::clone(&self.pool);
-          let routes = self.routes.clone(); // Clone routes for the thread
+          let routes = self.routes.clone();
           pool.lock().unwrap().run(move || {
             let request: Request = stream_to_request(&stream, &routes); // Pass routes here
             let answer: Option<Response> = handle_request(&request, &routes_local, &sources_local);

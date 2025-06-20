@@ -47,8 +47,8 @@ impl Display for Request {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     write!(
       f,
-      "Method: {}\nPath: {}\nVersion: {}\nHeaders: {:#?},\nBody: {}\n",
-      self.method, self.path, self.version, self.headers, self.body
+      "Method: {}\nPath: {}\nVersion: {}\nHeaders: {:#?},\nBody: {}\nParams: {:#?}",
+      self.method, self.path, self.version, self.headers, self.body, self.params
     )
   }
 }
@@ -111,7 +111,6 @@ fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> R
         for (key, value) in extracted_params {
           params.insert(key, value);
         }
-        break;
       }
     }
   }
