@@ -112,6 +112,7 @@ fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> R
           params.insert(key, value);
         }
       }
+      break;
     }
   }
 
