@@ -145,16 +145,30 @@ pub fn handle_file_request(path: &String, allowed: &[String]) -> Response {
 }
 
 pub fn handle_request(
-  req: &Request,
+  req: &mut Request, // notar mut para poder escribir params
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  let output;
+  // exact match
   if let Some(route) = routes.get(&(req.method.clone(), req.path.clone())) {
-    output = Some((route.handler)(req));
-  } else {
-    output = Some(handle_file_request(&req.path, file_bases));
+    return Some((route.handler)(req));
   }
 
-  output
+  // match with path params
+  for ((route_method, route_path), rh) in routes {
+    if *route_method == req.method {
+      let path_params = Request::extract_path_params(route_path, &req.path);
+      if !path_params.is_empty() {
+        req.params = path_params;
+        return Some((rh.handler)(req));
+      }
+    }
+  }
+
+  // fallback to files
+  if req.method == Rt::GET {
+    return Some(handle_file_request(&req.path, file_bases));
+  }
+
+  None
 }

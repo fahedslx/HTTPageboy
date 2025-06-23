@@ -67,8 +67,9 @@ impl Server {
           let pool = Arc::clone(&self.pool);
           let routes = self.routes.clone();
           pool.lock().unwrap().run(move || {
-            let request: Request = stream_to_request(&stream, &routes); // Pass routes here
-            let answer: Option<Response> = handle_request(&request, &routes_local, &sources_local);
+            let mut request: Request = stream_to_request(&stream, &routes); // Pass routes here
+            let answer: Option<Response> =
+              handle_request(&mut request, &routes_local, &sources_local);
             match answer {
               Some(response) => {
                 send_response(stream, &response, close_flag);

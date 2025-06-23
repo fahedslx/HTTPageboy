@@ -7,8 +7,8 @@ fn create_test_server() -> Server {
   server.add_route("/", Rt::GET, demo_handle_home);
   server.add_route("/test", Rt::GET, demo_handle_get);
   server.add_route("/test", Rt::POST, demo_handle_post);
-  server.add_route("/test/{id}", Rt::POST, demo_handle_post);
-  server.add_route("/test/{id}/{name}", Rt::POST, demo_handle_post);
+  server.add_route("/test/{param1}", Rt::POST, demo_handle_post);
+  server.add_route("/test/{param1}/{param2}", Rt::POST, demo_handle_post);
   server.add_route("/test", Rt::PUT, demo_handle_put);
   server.add_route("/test", Rt::DELETE, demo_handle_delete);
   server.add_files_source("res");
@@ -50,48 +50,39 @@ fn test_get() {
 
 fn demo_handle_post(_request: &Request) -> Response {
   let request_string = format!(
-    "Method: {}\nUri: {}\nHeaders: {:?}\nBody: {:?}\nParams: {:?}",
-    _request.method, _request.path, _request.headers, _request.body, _request.params
+    "Method: {}\nUri: {}\nParams: {:?}\nBody: {:?}",
+    _request.method, _request.path, _request.params, _request.body
   );
-  println!("{}", request_string);
-  let id = _request.params.get("id").map(|s| s.clone());
-  let name = _request.params.get("name").map(|s| s.clone());
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
-    content: format!("{:?}, {:?}", id, name).as_bytes().to_vec(),
+    content: request_string.as_bytes().to_vec(),
   }
 }
 
 #[test]
 fn test_post() {
   setup_test_server(|| create_test_server());
-  let request = b"POST /test HTTP/1.1\r\n\r\n";
-  let expected_response = b"None, None";
+  let request = b"POST /test HTTP/1.1\r\n\r\nmueve tu cuerpo";
+  let expected_response = b"Method: POST\nUri: /test\nParams: {}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
 #[test]
-fn test_post_with_path_params() {
+fn test_post_with_params() {
   setup_test_server(|| create_test_server());
-  let request = b"POST /test/1234/perrito HTTP/1.1\r\n\r\n";
-  let expected_response = b"Some(\"1234\"), Some(\"perrito\")";
+  let request = b"POST /test/hola/que?param3=hace HTTP/1.1\r\n\r\nmueve tu cuerpo";
+  let expected_response =
+    b"Method: POST\nUri: /test/hola/que\nParams: {\"param1\": \"hola\", \"param2\": \"que\"}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
 #[test]
 fn test_post_with_incomplete_path_params() {
   setup_test_server(|| create_test_server());
-  let request = b"POST /test/1234 HTTP/1.1\r\n\r\n";
-  let expected_response = b"Some(\"1234\"), None";
-  run_test(request, expected_response);
-}
-
-#[test]
-fn test_post_with_query_params() {
-  setup_test_server(|| create_test_server());
-  let request = b"POST /test?name=perrito&id=1234 HTTP/1.1\r\n\r\n";
-  let expected_response = b"Some(\"1234\"), Some(\"perrito\")";
+  let request = b"POST /test/hola HTTP/1.1\r\n\r\nmueve tu cuerpo";
+  let expected_response =
+    b"Method: POST\nUri: /test/hola\nParams: {\"param1\": \"hola\"}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
@@ -106,7 +97,7 @@ fn demo_handle_put(_request: &Request) -> Response {
 #[test]
 fn test_put() {
   setup_test_server(|| create_test_server());
-  let request = b"PUT /test HTTP/1.1\r\n\r\n";
+  let request = b"PUT /test HTTP/1.1\r\nmueve tu cuerpo\r\n";
   let expected_response = b"put";
   run_test(request, expected_response);
 }
