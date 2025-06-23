@@ -48,19 +48,12 @@ fn test_get() {
   run_test(request, expected_response);
 }
 
-#[test]
-fn test_post_with_query_params() {
-  setup_test_server(|| create_test_server());
-  let request = b"POST /test?name=perrito&id=1234 HTTP/1.1\r\n\r\n";
-  let expected_response = b"Some(\"1234\"), Some(\"perrito\")";
-  run_test(request, expected_response);
-}
-
 fn demo_handle_post(_request: &Request) -> Response {
   let request_string = format!(
     "Method: {}\nUri: {}\nHeaders: {:?}\nBody: {:?}\nParams: {:?}",
     _request.method, _request.path, _request.headers, _request.body, _request.params
   );
+  println!("{}", request_string);
   let id = _request.params.get("id").map(|s| s.clone());
   let name = _request.params.get("name").map(|s| s.clone());
   Response {
@@ -73,7 +66,31 @@ fn demo_handle_post(_request: &Request) -> Response {
 #[test]
 fn test_post() {
   setup_test_server(|| create_test_server());
+  let request = b"POST /test HTTP/1.1\r\n\r\n";
+  let expected_response = b"None, None";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_post_with_path_params() {
+  setup_test_server(|| create_test_server());
   let request = b"POST /test/1234/perrito HTTP/1.1\r\n\r\n";
+  let expected_response = b"Some(\"1234\"), Some(\"perrito\")";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_post_with_incomplete_path_params() {
+  setup_test_server(|| create_test_server());
+  let request = b"POST /test/1234 HTTP/1.1\r\n\r\n";
+  let expected_response = b"Some(\"1234\"), None";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_post_with_query_params() {
+  setup_test_server(|| create_test_server());
+  let request = b"POST /test?name=perrito&id=1234 HTTP/1.1\r\n\r\n";
   let expected_response = b"Some(\"1234\"), Some(\"perrito\")";
   run_test(request, expected_response);
 }

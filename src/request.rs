@@ -59,7 +59,6 @@ pub fn stream_to_request(mut stream: &TcpStream, routes: &HashMap<(Rt, String), 
   request_disassembly(raw, routes)
 }
 
-// TODO:  first extract query params, extract path params, extract the rest of parts
 fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> Request {
   let lines: Vec<&str> = request.split("\r\n").collect();
 
@@ -145,7 +144,6 @@ pub fn handle_file_request(path: &String, allowed: &[String]) -> Response {
   output
 }
 
-// TODO: check as route (in route.handler), else handle as file (handle_file_request), else return 404 (in thi function)
 pub fn handle_request(
   req: &Request,
   routes: &HashMap<(Rt, String), Rh>,
