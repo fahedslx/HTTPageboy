@@ -103,15 +103,37 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
     response.content.len(),
     connection_header
   );
-  stream.write_all(header.as_bytes()).unwrap();
-  if response.content_type.starts_with("image/") {
-    stream.write_all(&response.content).unwrap();
-  } else {
-    stream
-      .write_all(String::from_utf8_lossy(&response.content).as_bytes())
-      .unwrap();
+  match stream.write_all(header.as_bytes()) {
+    Ok(_) => {}
+    Err(e) => {
+      println!("Error writing header to stream: {}", e);
+      return;
+    }
   }
-  stream.flush().unwrap();
+  if response.content_type.starts_with("image/") {
+    match stream.write_all(&response.content) {
+      Ok(_) => {}
+      Err(e) => {
+        println!("Error writing image content to stream: {}", e);
+        return;
+      }
+    }
+  } else {
+    match stream.write_all(String::from_utf8_lossy(&response.content).as_bytes()) {
+      Ok(_) => {}
+      Err(e) => {
+        println!("Error writing text content to stream: {}", e);
+        return;
+      }
+    }
+  }
+  match stream.flush() {
+    Ok(_) => {}
+    Err(e) => {
+      println!("Error flushing stream: {}", e);
+      return;
+    }
+  }
 
   if close {
     let _ = stream.shutdown(Shutdown::Both);
