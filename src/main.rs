@@ -1,19 +1,3 @@
-# HTTPageboy Server
-
-Minimal HTTP server package for handling request/response transmission.
-
-`Request`: any HTTP request.
-`Route`: path + method + handler → returns Response.
-`Response`: bytes with content-type, sent to browser.
-
-
-## Example
-
-The test on `./tests/test.rs` is a functional server responding to multiple routes and methods. Though, here is a minimal example.
-
-Creating a simple server:
-
-```rust
 use httpageboy::{Request, Response, Rt, Server, StatusCode}; // Rt is alias for ResponseType
 
 fn main() {
@@ -40,15 +24,3 @@ fn demo_post(_request: &Request) -> Response {
     content: "post".as_bytes().to_vec(),
   };
 }
-```
-
-## Dependencies
-
-There are no external dependencies for production. :)
-
-There are two deps for testing only.
-
-## License
-
-Copyright (c) 2024 [fahedsl](https://gitlab.com/fahedsl)
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).

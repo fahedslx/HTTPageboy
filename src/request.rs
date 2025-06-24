@@ -55,8 +55,21 @@ impl Display for Request {
 
 pub fn stream_to_request(mut stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>) -> Request {
   let mut raw = String::new();
-  stream.read_to_string(&mut raw).unwrap();
-  request_disassembly(raw, routes)
+  match stream.read_to_string(&mut raw) {
+    Ok(_) => request_disassembly(raw, routes),
+    Err(e) => {
+      eprintln!("Error reading from stream: {}", e);
+      // Return a default request to avoid further errors
+      Request {
+        method: RequestType::GET,
+        path: String::new(),
+        version: String::new(),
+        headers: Vec::new(),
+        body: String::new(),
+        params: HashMap::new(),
+      }
+    }
+  }
 }
 
 fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> Request {

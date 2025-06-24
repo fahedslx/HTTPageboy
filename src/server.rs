@@ -36,7 +36,7 @@ impl Server {
       pool,
       routes,
       files_sources: Vec::new(),
-      auto_close: true,
+      auto_close: false,
     })
   }
 
@@ -94,6 +94,7 @@ impl Server {
   }
 }
 
+//TODO reemplazar predeterminado
 fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
   let connection_header = if close { "Connection: close\r\n" } else { "" };
   let header = format!(
@@ -103,24 +104,29 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
     response.content.len(),
     connection_header
   );
+  println!("Sending header: {:?}", header); // ADDED
   match stream.write_all(header.as_bytes()) {
-    Ok(_) => {}
+    Ok(_) => println!("Header sent successfully"), // ADDED
     Err(e) => {
       println!("Error writing header to stream: {}", e);
       return;
     }
   }
   if response.content_type.starts_with("image/") {
+    println!("Sending image content"); // ADDED
     match stream.write_all(&response.content) {
-      Ok(_) => {}
+      Ok(_) => println!("Image content sent successfully"), // ADDED
       Err(e) => {
         println!("Error writing image content to stream: {}", e);
         return;
       }
     }
   } else {
-    match stream.write_all(String::from_utf8_lossy(&response.content).as_bytes()) {
-      Ok(_) => {}
+    println!("Sending text content"); // ADDED
+    let text_content = String::from_utf8_lossy(&response.content);
+    println!("Text content: {:?}", text_content); // ADDED
+    match stream.write_all(text_content.as_bytes()) {
+      Ok(_) => println!("Text content sent successfully"), // ADDED
       Err(e) => {
         println!("Error writing text content to stream: {}", e);
         return;
@@ -128,7 +134,7 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
     }
   }
   match stream.flush() {
-    Ok(_) => {}
+    Ok(_) => println!("Stream flushed successfully"), // ADDED
     Err(e) => {
       println!("Error flushing stream: {}", e);
       return;
@@ -138,4 +144,5 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
   if close {
     let _ = stream.shutdown(Shutdown::Both);
   }
+  println!("Response sent successfully"); // ADDED
 }
