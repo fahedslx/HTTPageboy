@@ -57,6 +57,7 @@ impl Server {
     self.files_sources.push(base.into());
   }
 
+  //TODO: add logging to this function for debug
   pub fn run(&self) {
     for stream in self.listener.incoming() {
       match stream {
@@ -67,7 +68,7 @@ impl Server {
           let pool = Arc::clone(&self.pool);
           let routes = self.routes.clone();
           pool.lock().unwrap().run(move || {
-            let mut request: Request = stream_to_request(&stream, &routes); // Pass routes here
+            let mut request: Request = stream_to_request(&stream, &routes);
             let answer: Option<Response> =
               handle_request(&mut request, &routes_local, &sources_local);
             match answer {
