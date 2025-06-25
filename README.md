@@ -8,8 +8,8 @@ Minimal HTTP server package for handling request/response transmission.
 
 
 ## Example
-
-The test on `./tests/test.rs` is a functional server responding to multiple routes and methods. Though, here is a minimal example.
+// lib.rs is the actual implementation of the server.
+// main.rs is this following example ready for execution. Just run `cargo run` on the terminal. and go to http://127.0.0.1:7878.
 
 Creating a simple server:
 
@@ -46,7 +46,7 @@ fn demo_post(_request: &Request) -> Response {
 
 There are no external dependencies for production. :)
 
-There are two deps for testing only.
+There are two deps for testing only. Just remove them.
 
 ## License
 
