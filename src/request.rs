@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result};
-use std::io::Read;
 use std::net::TcpStream;
 
 use crate::request_handler::Rh;
@@ -53,23 +52,30 @@ impl Display for Request {
   }
 }
 
-pub fn stream_to_request(mut stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>) -> Request {
+// TODO: review
+pub fn stream_to_request(stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>) -> Request {
+  use std::io::{BufRead, BufReader};
+
+  let mut reader = BufReader::new(stream);
   let mut raw = String::new();
-  match stream.read_to_string(&mut raw) {
-    Ok(_) => request_disassembly(raw, routes),
-    Err(e) => {
-      eprintln!("Error reading from stream: {}", e);
-      // Return a default request to avoid further errors
-      Request {
-        method: RequestType::GET,
-        path: String::new(),
-        version: String::new(),
-        headers: Vec::new(),
-        body: String::new(),
-        params: HashMap::new(),
+  loop {
+    let mut line = String::new();
+    match reader.read_line(&mut line) {
+      Ok(0) => break,
+      Ok(_) => {
+        raw.push_str(&line);
+        if raw.contains("\r\n\r\n") {
+          break;
+        }
+      }
+      Err(e) => {
+        eprintln!("Error leyendo del stream: {}", e);
+        break;
       }
     }
   }
+
+  request_disassembly(raw, routes)
 }
 
 fn request_disassembly(request: String, routes: &HashMap<(Rt, String), Rh>) -> Request {
