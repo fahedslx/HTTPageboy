@@ -21,7 +21,7 @@ fn main() {
   let threads_number: u8 = 10;
   let mut server = Server::new(serving_url, threads_number, None).unwrap();
   server.add_route("/", Rt::GET, demo_get);
-  server.add_route("/", Rt::POST, demo_post);
+  server.add_files_source("res"); //this points to the /res folder in the project root
   server.run();
 }
 
@@ -32,23 +32,14 @@ fn demo_get(_request: &Request) -> Response {
     content: "get".as_bytes().to_vec(),
   };
 }
-
-fn demo_post(_request: &Request) -> Response {
-  return Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "post".as_bytes().to_vec(),
-  };
-}
 ```
 
 ## Dependencies
 
 There are no external dependencies for production. :)
-
-There are two deps for testing only. Just remove them.
+There are two deps used on the tests only. Just remove them.
 
 ## License
 
-Copyright (c) 2024 [fahedsl](https://gitlab.com/fahedsl)
+Copyright (c) 2025 [fahedsl](https://gitlab.com/fahedsl)
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).

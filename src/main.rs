@@ -5,7 +5,7 @@ fn main() {
   let threads_number: u8 = 10;
   let mut server = Server::new(serving_url, threads_number, None).unwrap();
   server.add_route("/", Rt::GET, demo_get);
-  server.add_route("/", Rt::POST, demo_post);
+  server.add_files_source("res"); //this points to the /res folder in the project root
   server.run();
 }
 
@@ -14,13 +14,5 @@ fn demo_get(_request: &Request) -> Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
     content: "get".as_bytes().to_vec(),
-  };
-}
-
-fn demo_post(_request: &Request) -> Response {
-  return Response {
-    status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "post".as_bytes().to_vec(),
   };
 }

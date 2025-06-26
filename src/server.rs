@@ -81,8 +81,8 @@ impl Server {
             }
           });
         }
-        Err(err) => {
-          println!("Error: {}", err);
+        Err(_err) => {
+          println!("Error: {}", _err);
         }
       }
     }
@@ -105,39 +105,43 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
     response.content.len(),
     connection_header
   );
-  println!("Sending header: {:?}", header); // ADDED
+  // println!("Sending header: {:?}", header);
   match stream.write_all(header.as_bytes()) {
-    Ok(_) => println!("Header sent successfully"), // ADDED
-    Err(e) => {
-      println!("Error writing header to stream: {}", e);
+    // Ok(_) => println!("Header sent successfully"),
+    Ok(_) => {}
+    Err(_e) => {
+      // println!("Error writing header to stream: {}", e);
       return;
     }
   }
   if response.content_type.starts_with("image/") {
-    println!("Sending image content"); // ADDED
+    // println!("Sending image content");
     match stream.write_all(&response.content) {
-      Ok(_) => println!("Image content sent successfully"), // ADDED
-      Err(e) => {
-        println!("Error writing image content to stream: {}", e);
+      // Ok(_) => println!("Image content sent successfully"),
+      Ok(_) => {}
+      Err(_e) => {
+        // println!("Error writing image content to stream: {}", e);
         return;
       }
     }
   } else {
-    println!("Sending text content"); // ADDED
+    // println!("Sending text content");
     let text_content = String::from_utf8_lossy(&response.content);
-    println!("Text content: {:?}", text_content); // ADDED
+    // println!("Text content: {:?}", text_content);
     match stream.write_all(text_content.as_bytes()) {
-      Ok(_) => println!("Text content sent successfully"), // ADDED
-      Err(e) => {
-        println!("Error writing text content to stream: {}", e);
+      // Ok(_) => println!("Text content sent successfully"),
+      Ok(_) => {}
+      Err(_e) => {
+        // println!("Error writing text content to stream: {}", e);
         return;
       }
     }
   }
   match stream.flush() {
-    Ok(_) => println!("Stream flushed successfully"), // ADDED
-    Err(e) => {
-      println!("Error flushing stream: {}", e);
+    // Ok(_) => println!("Stream flushed successfully"),
+    Ok(_) => {}
+    Err(_e) => {
+      // println!("Error flushing stream: {}", e);
       return;
     }
   }
@@ -145,5 +149,5 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
   if close {
     let _ = stream.shutdown(Shutdown::Both);
   }
-  println!("Response sent successfully"); // ADDED
+  println!("Response sent successfully");
 }
