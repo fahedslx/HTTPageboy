@@ -8,8 +8,10 @@ Minimal HTTP server package for handling request/response transmission.
 
 
 ## Example
-// lib.rs is the actual implementation of the server.
-// main.rs is this following example ready for execution. Just run `cargo run` on the terminal. and go to http://127.0.0.1:7878.
+
+lib.rs is the actual implementation of the server.
+
+main.rs is this following example ready for execution. Just run `cargo run` on the terminal and go to http://127.0.0.1:7878.
 
 Creating a simple server:
 
@@ -37,9 +39,10 @@ fn demo_get(_request: &Request) -> Response {
 ## Dependencies
 
 There are no external dependencies for production. :)
+
 There are two deps used on the tests only. Just remove them.
 
 ## License
 
-Copyright (c) 2025 [fahedsl](https://gitlab.com/fahedsl)
+Copyright (c) 2025 [fahedsl](https://gitlab.com/fahedsl).
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
