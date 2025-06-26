@@ -68,8 +68,8 @@ pub fn stream_to_request(stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>)
           break;
         }
       }
-      Err(e) => {
-        eprintln!("Error leyendo del stream: {}", e);
+      Err(_e) => {
+        // eprintln!("Error leyendo del stream: {}", _e);
         break;
       }
     }

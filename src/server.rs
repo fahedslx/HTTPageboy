@@ -82,7 +82,7 @@ impl Server {
           });
         }
         Err(_err) => {
-          println!("Error: {}", _err);
+          // println!("Error: {}", _err);
         }
       }
     }
@@ -90,7 +90,7 @@ impl Server {
 
   pub fn stop(&self) {
     let mut pool = self.pool.lock().unwrap();
-    println!("server stop");
+    // println!("server stop");
     pool.stop();
   }
 }
@@ -149,5 +149,5 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
   if close {
     let _ = stream.shutdown(Shutdown::Both);
   }
-  println!("Response sent successfully");
+  // println!("Response sent successfully");
 }
