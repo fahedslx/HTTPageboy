@@ -9,9 +9,9 @@ Minimal HTTP server package for handling request/response transmission.
 
 ## Example
 
-lib.rs is the actual implementation of the server.
+`lib.rs` is the actual implementation of the server.
 
-main.rs is this following example ready for execution. Just run `cargo run` on the terminal and go to http://127.0.0.1:7878.
+`main.rs` is this following example ready for execution. Just run `cargo run` on the terminal and go to http://127.0.0.1:7878.
 
 Creating a simple server:
 
@@ -31,7 +31,11 @@ fn demo_get(_request: &Request) -> Response {
   return Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
-    content: "get".as_bytes().to_vec(),
+    content: "<!DOCTYPE html><html><head>
+        <meta charset=\"utf-8\">\
+        </head><body>🤓👉 <a href=\"/test.png\">IMG</a></body></html>"
+      .as_bytes()
+      .to_vec(),
   };
 }
 ```
