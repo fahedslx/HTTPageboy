@@ -13,6 +13,10 @@ fn demo_get(_request: &Request) -> Response {
   return Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
-    content: "get".as_bytes().to_vec(),
+    content: "<!DOCTYPE html><html><head>
+        <meta charset=\"utf-8\">\
+        </head><body>🤓👉 <a href=\"/test.png\">IMG</a></body></html>"
+      .as_bytes()
+      .to_vec(),
   };
 }
