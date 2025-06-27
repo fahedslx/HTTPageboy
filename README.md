@@ -9,9 +9,12 @@ Minimal HTTP server package for handling request/response transmission.
 
 ## Example
 
+
 `lib.rs` is the actual implementation of the server.
 
+
 `main.rs` is this following example ready for execution. Just run `cargo run` on the terminal and go to http://127.0.0.1:7878.
+
 
 Creating a simple server:
 
