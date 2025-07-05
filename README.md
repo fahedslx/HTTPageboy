@@ -1,4 +1,4 @@
-# HTTPageboy Server
+# HTTPageboy
 
 Minimal HTTP server package for handling request/response transmission.
 
