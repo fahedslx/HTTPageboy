@@ -20,3 +20,10 @@ path = "src/lib.rs"
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[features]
+default = ["sync"]
+sync = []
+async_tokio = []
+async_smol = []
+async_std = []

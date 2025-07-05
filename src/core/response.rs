@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 
-use crate::status_code::StatusCode;
+use crate::core::status_code::StatusCode;
 
 #[derive(Debug)]
 pub struct Response {

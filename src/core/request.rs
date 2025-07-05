@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result};
 use std::net::TcpStream;
 
-use crate::request_handler::Rh;
-use crate::request_type::{RequestType, Rt};
-use crate::response::Response;
-use crate::status_code::StatusCode;
-use crate::utils::{get_content_type_quick, secure_path};
+use crate::core::request_handler::Rh;
+use crate::core::request_type::{RequestType, Rt};
+use crate::core::response::Response;
+use crate::core::status_code::StatusCode;
+use crate::core::utils::{get_content_type_quick, secure_path};
 
 pub struct Request {
   pub method: RequestType,
@@ -54,10 +54,11 @@ impl Display for Request {
 
 // TODO: review
 pub fn stream_to_request(stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>) -> Request {
-  use std::io::{BufRead, BufReader};
+  use std::io::{BufRead, BufReader, Read};
 
   let mut reader = BufReader::new(stream);
   let mut raw = String::new();
+
   loop {
     let mut line = String::new();
     match reader.read_line(&mut line) {
@@ -68,10 +69,28 @@ pub fn stream_to_request(stream: &TcpStream, routes: &HashMap<(Rt, String), Rh>)
           break;
         }
       }
-      Err(_e) => {
-        // eprintln!("Error leyendo del stream: {}", _e);
-        break;
-      }
+      Err(_) => break,
+    }
+  }
+
+  let content_length = {
+    let headers_part = raw.clone();
+    headers_part
+      .lines()
+      .find_map(|line| {
+        if line.to_ascii_lowercase().starts_with("content-length:") {
+          line.split(':').nth(1)?.trim().parse::<usize>().ok()
+        } else {
+          None
+        }
+      })
+      .unwrap_or(0)
+  };
+
+  if content_length > 0 {
+    let mut body_buf = vec![0; content_length];
+    if reader.read_exact(&mut body_buf).is_ok() {
+      raw.push_str(&String::from_utf8_lossy(&body_buf));
     }
   }
 
