@@ -48,6 +48,14 @@ fn test_get() {
   run_test(request, expected_response);
 }
 
+#[test]
+fn test_get_with_query() {
+  setup_test_server(|| create_test_server());
+  let request = b"GET /test?foo=bar&baz=qux HTTP/1.1\r\n\r\n";
+  let expected_response = b"get"; // mismo handler
+  run_test(request, expected_response);
+}
+
 fn demo_handle_post(_request: &Request) -> Response {
   let request_string = format!(
     "Method: {}\nUri: {}\nParams: {:?}\nBody: {:?}",
@@ -69,11 +77,28 @@ fn test_post() {
 }
 
 #[test]
+fn test_post_with_query() {
+  setup_test_server(|| create_test_server());
+  let request = b"POST /test?foo=bar HTTP/1.1\r\n\r\nmueve tu cuerpo";
+  let expected_response =
+    b"Method: POST\nUri: /test\nParams: {\"foo\": \"bar\"}\nBody: \"mueve tu cuerpo\"";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_post_with_content_length() {
+  setup_test_server(|| create_test_server());
+  let request = b"POST /test HTTP/1.1\r\nContent-Length: 15\r\n\r\nmueve tu cuerpo";
+  let expected_response = b"Method: POST\nUri: /test\nParams: {}\nBody: \"mueve tu cuerpo\"";
+  run_test(request, expected_response);
+}
+
+#[test]
 fn test_post_with_params() {
   setup_test_server(|| create_test_server());
   let request = b"POST /test/hola/que?param3=hace HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected_response =
-    b"Method: POST\nUri: /test/hola/que\nParams: {\"param1\": \"hola\", \"param2\": \"que\"}\nBody: \"mueve tu cuerpo\"";
+    b"Method: POST\nUri: /test/hola/que\nParams: {\"param1\": \"hola\", \"param2\": \"que\", \"param3\": \"hace\"}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
@@ -87,18 +112,22 @@ fn test_post_with_incomplete_path_params() {
 }
 
 fn demo_handle_put(_request: &Request) -> Response {
+  let request_string = format!(
+    "Method: {}\nUri: {}\nParams: {:?}\nBody: {:?}",
+    _request.method, _request.path, _request.params, _request.body
+  );
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
-    content: "put".as_bytes().to_vec(),
+    content: request_string.as_bytes().to_vec(),
   }
 }
 
 #[test]
 fn test_put() {
   setup_test_server(|| create_test_server());
-  let request = b"PUT /test HTTP/1.1\r\nmueve tu cuerpo\r\n";
-  let expected_response = b"put";
+  let request = b"PUT /test HTTP/1.1\r\n\r\nmueve tu cuerpo";
+  let expected_response = b"Method: PUT\nUri: /test\nParams: {}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
@@ -131,5 +160,54 @@ fn test_file_not_found() {
   setup_test_server(|| create_test_server());
   let request = b"GET /test1.png HTTP/1.1\r\n\r\n";
   let expected_response = b"HTTP/1.1 404 Not Found";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_method_not_allowed() {
+  setup_test_server(|| create_test_server());
+  let request = b"BREW /coffee HTTP/1.1\r\n\r\n";
+  let expected_response = b"HTTP/1.1 405 Method Not Allowed";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_empty_request() {
+  setup_test_server(|| create_test_server());
+  let request = b"";
+  let expected_response = b"HTTP/1.1 400 Bad Request";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_malformed_request() {
+  setup_test_server(|| create_test_server());
+  let request = b"THIS_IS_NOT_HTTP\r\n\r\n";
+  let expected_response = b"HTTP/1.1 400 Bad Request";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_unsupported_http_version() {
+  setup_test_server(|| create_test_server());
+  let request = b"GET / HTTP/0.9\r\n\r\n";
+  let expected_response = b"HTTP/1.1 505 HTTP Version Not Supported";
+  run_test(request, expected_response);
+}
+
+#[test]
+fn test_long_path() {
+  setup_test_server(|| create_test_server());
+  let long_path = "/".to_string() + &"a".repeat(10_000);
+  let request = format!("GET {} HTTP/1.1\r\n\r\n", long_path);
+  let expected_response = b"HTTP/1.1 414 URI Too Long";
+  run_test(request.as_bytes(), expected_response);
+}
+
+#[test]
+fn test_missing_method() {
+  setup_test_server(|| create_test_server());
+  let request = b"/ HTTP/1.1\r\n\r\n";
+  let expected_response = b"HTTP/1.1 400 Bad Request";
   run_test(request, expected_response);
 }
