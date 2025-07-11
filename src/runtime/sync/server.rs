@@ -3,7 +3,7 @@ use std::io::prelude::Write;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 
-use crate::core::request::{handle_request, stream_to_request, Request};
+use crate::core::request::{handle_request, Request};
 pub use crate::core::request_handler::Rh;
 pub use crate::core::request_type::Rt;
 use crate::core::response::Response;
@@ -25,11 +25,7 @@ impl Server {
   ) -> Result<Server, std::io::Error> {
     let listener = TcpListener::bind(serving_url)?;
     let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
-    let routes = if let Some(routes) = routes_list {
-      routes
-    } else {
-      HashMap::new()
-    };
+    let routes = routes_list.unwrap_or_default();
 
     Ok(Server {
       listener,
@@ -57,7 +53,6 @@ impl Server {
     self.files_sources.push(base.into());
   }
 
-  //TODO: add logging to this function for debug
   pub fn run(&self) {
     for stream in self.listener.incoming() {
       match stream {
@@ -66,23 +61,24 @@ impl Server {
           let sources_local = self.files_sources.clone();
           let close_flag = self.auto_close;
           let pool = Arc::clone(&self.pool);
-          let routes = self.routes.clone();
           pool.lock().unwrap().run(move || {
-            let mut request: Request = stream_to_request(&stream, &routes);
-            let answer: Option<Response> =
-              handle_request(&mut request, &routes_local, &sources_local);
+            // 1. Leer request y posible respuesta de error temprana
+            let (mut request, early_resp) =
+              Request::from_stream(&stream, &routes_local, &sources_local);
+            // 2. Si hay respuesta temprana (400, 414, 505), la usamos
+            let answer = if let Some(resp) = early_resp {
+              Some(resp)
+            } else {
+              handle_request(&mut request, &routes_local, &sources_local)
+            };
             match answer {
-              Some(response) => {
-                send_response(stream, &response, close_flag);
-              }
-              None => {
-                send_response(stream, &Response::new(), close_flag);
-              }
+              Some(response) => send_response(stream, &response, close_flag),
+              None => send_response(stream, &Response::new(), close_flag),
             }
           });
         }
         Err(_err) => {
-          // println!("Error: {}", _err);
+          // podrías loguear el error aquí
         }
       }
     }
@@ -90,12 +86,10 @@ impl Server {
 
   pub fn stop(&self) {
     let mut pool = self.pool.lock().unwrap();
-    // println!("server stop");
     pool.stop();
   }
 }
 
-//TODO reemplazar predeterminado
 fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
   let connection_header = if close { "Connection: close\r\n" } else { "" };
   let header = format!(
@@ -105,49 +99,17 @@ fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
     response.content.len(),
     connection_header
   );
-  // println!("Sending header: {:?}", header);
-  match stream.write_all(header.as_bytes()) {
-    // Ok(_) => println!("Header sent successfully"),
-    Ok(_) => {}
-    Err(_e) => {
-      // println!("Error writing header to stream: {}", e);
-      return;
-    }
-  }
+  let _ = stream.write_all(header.as_bytes());
+
   if response.content_type.starts_with("image/") {
-    // println!("Sending image content");
-    match stream.write_all(&response.content) {
-      // Ok(_) => println!("Image content sent successfully"),
-      Ok(_) => {}
-      Err(_e) => {
-        // println!("Error writing image content to stream: {}", e);
-        return;
-      }
-    }
+    let _ = stream.write_all(&response.content);
   } else {
-    // println!("Sending text content");
-    let text_content = String::from_utf8_lossy(&response.content);
-    // println!("Text content: {:?}", text_content);
-    match stream.write_all(text_content.as_bytes()) {
-      // Ok(_) => println!("Text content sent successfully"),
-      Ok(_) => {}
-      Err(_e) => {
-        // println!("Error writing text content to stream: {}", e);
-        return;
-      }
-    }
-  }
-  match stream.flush() {
-    // Ok(_) => println!("Stream flushed successfully"),
-    Ok(_) => {}
-    Err(_e) => {
-      // println!("Error flushing stream: {}", e);
-      return;
-    }
+    let text = String::from_utf8_lossy(&response.content);
+    let _ = stream.write_all(text.as_bytes());
   }
 
+  let _ = stream.flush();
   if close {
     let _ = stream.shutdown(Shutdown::Both);
   }
-  // println!("Response sent successfully");
 }

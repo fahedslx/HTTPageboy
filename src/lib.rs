@@ -8,7 +8,7 @@ pub mod core {
   pub mod utils;
 }
 
-pub use core::request::{handle_request, stream_to_request, Request};
+pub use core::request::{handle_request, Request};
 pub use core::request_handler::Rh;
 pub use core::request_type::Rt;
 pub use core::response::Response;
