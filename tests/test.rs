@@ -96,9 +96,12 @@ fn test_post_with_content_length() {
 #[test]
 fn test_post_with_params() {
   setup_test_server(|| create_test_server());
-  let request = b"POST /test/hola/que?param3=hace HTTP/1.1\r\n\r\nmueve tu cuerpo";
+  let request = b"POST /test/hola/que?param4=hoy&param3=hace HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected_response =
-    b"Method: POST\nUri: /test/hola/que\nParams: {\"param1\": \"hola\", \"param2\": \"que\", \"param3\": \"hace\"}\nBody: \"mueve tu cuerpo\"";
+    b"Method: POST\n\
+      Uri: /test/hola/que\n\
+      Params: {\"param1\": \"hola\", \"param2\": \"que\", \"param3\": \"hace\", \"param4\": \"hoy\"}\n\
+      Body: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 

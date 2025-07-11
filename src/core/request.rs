@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter, Result};
 use std::net::TcpStream;
 
 use crate::core::request_handler::Rh;
@@ -8,6 +7,7 @@ use crate::core::response::Response;
 use crate::core::status_code::StatusCode;
 use crate::core::utils::{get_content_type_quick, secure_path};
 
+/// Represents an HTTP request.
 pub struct Request {
   pub method: RequestType,
   pub path: String,
@@ -18,7 +18,8 @@ pub struct Request {
 }
 
 impl Request {
-  fn extract_path_params(route: &str, path: &str) -> HashMap<String, String> {
+  /// Extracts path parameters according to a route pattern.
+  fn extract_params(route: &str, path: &str) -> HashMap<String, String> {
     let mut params = HashMap::new();
     let route_parts: Vec<&str> = route.split('/').collect();
     let path_parts: Vec<&str> = path.split('/').collect();
@@ -27,8 +28,8 @@ impl Request {
     }
     for (i, part) in route_parts.iter().enumerate() {
       if part.starts_with('{') && part.ends_with('}') {
-        let name = part.trim_matches(|c| c == '{' || c == '}').to_string();
-        params.insert(name, path_parts[i].to_string());
+        let key = part.trim_matches(|c| c == '{' || c == '}').to_string();
+        params.insert(key, path_parts[i].to_string());
       } else if *part != path_parts[i] {
         return HashMap::new();
       }
@@ -36,14 +37,18 @@ impl Request {
     params
   }
 
-  pub fn from_stream(
+  /// Reads from the stream, handles early errors, and returns a Request plus optional error Response.
+  pub fn parse_stream(
     stream: &TcpStream,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
   ) -> (Self, Option<Response>) {
     use std::io::{BufRead, BufReader, Read};
+
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
+
+    // read headers
     loop {
       let mut line = String::new();
       if reader
@@ -59,6 +64,8 @@ impl Request {
         break;
       }
     }
+
+    // read body
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -69,12 +76,18 @@ impl Request {
         }
       })
       .unwrap_or(0);
+
     if content_length > 0 {
       let mut buf = vec![0; content_length];
-      if reader.read_exact(&mut buf).is_ok() {
-        raw.push_str(&String::from_utf8_lossy(&buf));
-      }
+      let _ = reader.read_exact(&mut buf);
+      raw.push_str(&String::from_utf8_lossy(&buf));
+    } else {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest);
+      raw.push_str(&rest);
     }
+
+    // early error: empty or malformed request
     if raw.trim().is_empty() {
       let resp = Response {
         status: StatusCode::BadRequest.to_string(),
@@ -83,47 +96,108 @@ impl Request {
       };
       return (Self::default(), Some(resp));
     }
-    let mut req = Self::from_raw(raw, routes);
-    let res = req.handle_request(routes, file_bases);
-    (req, res)
+    let parts: Vec<&str> = raw.split_whitespace().collect();
+    if parts.len() < 3 {
+      let resp = Response {
+        status: StatusCode::BadRequest.to_string(),
+        content_type: String::new(),
+        content: Vec::new(),
+      };
+      return (Self::default(), Some(resp));
+    }
+
+    let method_str = parts[0];
+    let path_str = parts[1];
+    let version = parts[2];
+
+    // early error: method not allowed
+    let allowed = ["GET", "POST", "PUT", "DELETE"];
+    if !allowed.contains(&method_str) {
+      let resp = Response {
+        status: StatusCode::MethodNotAllowed.to_string(),
+        content_type: String::new(),
+        content: Vec::new(),
+      };
+      return (Self::default(), Some(resp));
+    }
+    // early error: unsupported HTTP version
+    if version != "HTTP/1.1" {
+      let resp = Response {
+        status: StatusCode::HttpVersionNotSupported.to_string(),
+        content_type: String::new(),
+        content: Vec::new(),
+      };
+      return (Self::default(), Some(resp));
+    }
+    // early error: URI too long
+    const MAX_URI: usize = 2000;
+    if path_str.len() > MAX_URI {
+      let resp = Response {
+        status: StatusCode::UriTooLong.to_string(),
+        content_type: String::new(),
+        content: Vec::new(),
+      };
+      return (Self::default(), Some(resp));
+    }
+
+    // normal request parsing
+    let mut req = Self::parse_raw(raw, routes);
+    let early = req.route(routes, file_bases);
+    (req, early)
   }
 
-  fn from_raw(raw: String, routes: &HashMap<(Rt, String), Rh>) -> Self {
+  /// Parses raw HTTP text into a Request, extracting headers, body, path, and parameters.
+  fn parse_raw(raw: String, routes: &HashMap<(Rt, String), Rh>) -> Self {
     let lines: Vec<&str> = raw.split("\r\n").collect();
-    let mut blank = 0;
+    let mut cut = 0;
     for (i, &l) in lines.iter().enumerate() {
       if l.trim().is_empty() {
-        blank = i;
+        cut = i;
         break;
       }
     }
-    let headers = lines[..blank]
+
+    let headers = lines[..cut]
       .iter()
       .filter_map(|&h| {
         let p: Vec<&str> = h.split(": ").collect();
         (p.len() == 2).then(|| (p[0].to_string(), p[1].to_string()))
       })
       .collect();
-    let body = lines[blank + 1..].join("\r\n");
+
+    let body = lines[cut + 1..].join("\r\n");
     let parts: Vec<&str> = raw.split_whitespace().collect();
+
+    // separate query string
     let mut path = parts[1].to_string();
     let mut params = HashMap::new();
-    if let Some(q) = path.find('?') {
-      for p in path[q + 1..].split('&') {
-        if let Some(eq) = p.find('=') {
-          params.insert(p[..eq].to_string(), p[eq + 1..].to_string());
-        }
-      }
-      path = path[..q].to_string();
-    }
-    for ((m, rp), _rh) in routes {
+    let query_opt = if let Some(qpos) = path.find('?') {
+      let qs = path[qpos + 1..].to_string();
+      path.truncate(qpos);
+      Some(qs)
+    } else {
+      None
+    };
+
+    // extract route parameters
+    for ((m, rp), _) in routes {
       if *m == RequestType::from_str(parts[0]) {
-        for (k, v) in Self::extract_path_params(rp, &path) {
+        for (k, v) in Self::extract_params(rp, &path) {
           params.insert(k, v);
         }
         break;
       }
     }
+
+    // insert query parameters
+    if let Some(qs) = query_opt {
+      for p in qs.split('&') {
+        if let Some(eq) = p.find('=') {
+          params.insert(p[..eq].to_string(), p[eq + 1..].to_string());
+        }
+      }
+    }
+
     Request {
       method: RequestType::from_str(parts[0]),
       path,
@@ -134,7 +208,8 @@ impl Request {
     }
   }
 
-  pub fn handle_request(
+  /// Routes the request or serves a file for GET if no route matches.
+  pub fn route(
     &mut self,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -144,21 +219,29 @@ impl Request {
     }
     for ((m, rp), rh) in routes {
       if *m == self.method {
-        let ex = Self::extract_path_params(rp, &self.path);
-        if !ex.is_empty() {
-          self.params = ex;
+        let path_p = Self::extract_params(rp, &self.path);
+        if !path_p.is_empty() {
+          let mut merged = HashMap::new();
+          for (k, v) in path_p {
+            merged.insert(k, v);
+          }
+          for (k, v) in self.params.drain() {
+            merged.insert(k, v);
+          }
+          self.params = merged;
           return Some((rh.handler)(self));
         }
       }
     }
     if self.method == Rt::GET {
-      return Some(self.handle_file(file_bases));
+      return Some(self.serve_file(file_bases));
     }
     None
   }
 
-  fn handle_file(&self, allowed: &[String]) -> Response {
-    for base in allowed {
+  /// Serves a static file from allowed bases or returns 404.
+  fn serve_file(&self, bases: &[String]) -> Response {
+    for base in bases {
       if let Some(real) = secure_path(base, &self.path) {
         if let Ok(data) = std::fs::read(&real) {
           return Response {
@@ -186,20 +269,39 @@ impl Default for Request {
   }
 }
 
+use std::fmt::{Display, Formatter};
+
+/// Allows printing a Request in the required format with sorted parameters.
 impl Display for Request {
-  fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    let mut keys: Vec<&String> = self.params.keys().collect();
+    keys.sort();
+    let params_str = {
+      let parts: Vec<String> = keys
+        .into_iter()
+        .map(|k| format!("\"{}\": \"{}\"", k, self.params[k]))
+        .collect();
+      format!("{{{}}}", parts.join(", "))
+    };
+
     write!(
       f,
-      "Method: {}\nPath: {}\nVersion: {}\nHeaders: {:#?},\nBody: {}\nParams: {:#?}",
-      self.method, self.path, self.version, self.headers, self.body, self.params
+      "Method: {}\n\
+       Path: {}\n\
+       Version: {}\n\
+       Headers: {:#?},\n\
+       Body: {}\n\
+       Params: {}",
+      self.method, self.path, self.version, self.headers, self.body, params_str
     )
   }
 }
 
+/// Routes the Request or serves static files.
 pub fn handle_request(
   req: &mut Request,
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  req.handle_request(routes, file_bases)
+  req.route(routes, file_bases)
 }

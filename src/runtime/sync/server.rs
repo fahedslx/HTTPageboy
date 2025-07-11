@@ -64,7 +64,7 @@ impl Server {
           pool.lock().unwrap().run(move || {
             // 1. Leer request y posible respuesta de error temprana
             let (mut request, early_resp) =
-              Request::from_stream(&stream, &routes_local, &sources_local);
+              Request::parse_stream(&stream, &routes_local, &sources_local);
             // 2. Si hay respuesta temprana (400, 414, 505), la usamos
             let answer = if let Some(resp) = early_resp {
               Some(resp)
