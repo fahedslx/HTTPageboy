@@ -25,8 +25,8 @@ impl Server {
   ) -> Result<Server, std::io::Error> {
     let listener = TcpListener::bind(serving_url)?;
     let pool = Arc::new(Mutex::new(ThreadPool::new(pool_size as usize)));
-    let routes = if let Some(r) = routes_list {
-      r
+    let routes = if let Some(routes) = routes_list {
+      routes
     } else {
       HashMap::new()
     };
