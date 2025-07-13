@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use httpageboy::test_utils::{run_test, setup_test_server, POOL_SIZE, SERVER_URL};
 use httpageboy::{Request, Response, Rt, Server, StatusCode};
 
@@ -57,9 +59,18 @@ fn test_get_with_query() {
 }
 
 fn demo_handle_post(_request: &Request) -> Response {
+  // build a BTreeMap to get params in sorted key order
+  let mut ordered: BTreeMap<&String, &String> = BTreeMap::new();
+  for (k, v) in &_request.params {
+    ordered.insert(k, v);
+  }
+
   let request_string = format!(
     "Method: {}\nUri: {}\nParams: {:?}\nBody: {:?}",
-    _request.method, _request.path, _request.params, _request.body
+    _request.method,
+    _request.path,
+    ordered, // now printed in key order
+    _request.body
   );
   Response {
     status: StatusCode::Ok.to_string(),

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::net::TcpStream;
 
 use crate::core::request_handler::Rh;
@@ -19,22 +19,23 @@ pub struct Request {
 
 impl Request {
   /// Extracts path parameters according to a route pattern.
+
   fn extract_params(route: &str, path: &str) -> HashMap<String, String> {
-    let mut params = HashMap::new();
-    let route_parts: Vec<&str> = route.split('/').collect();
-    let path_parts: Vec<&str> = path.split('/').collect();
+    let mut sorted: BTreeMap<String, String> = BTreeMap::new();
+    let route_parts = route.split('/').collect::<Vec<_>>();
+    let path_parts = path.split('/').collect::<Vec<_>>();
     if route_parts.len() != path_parts.len() {
-      return params;
+      return HashMap::new();
     }
     for (i, part) in route_parts.iter().enumerate() {
       if part.starts_with('{') && part.ends_with('}') {
-        let key = part.trim_matches(|c| c == '{' || c == '}').to_string();
-        params.insert(key, path_parts[i].to_string());
+        let key = part.trim_matches(&['{', '}'][..]).to_string();
+        sorted.insert(key, path_parts[i].to_string());
       } else if *part != path_parts[i] {
         return HashMap::new();
       }
     }
-    params
+    sorted.into_iter().collect() // convierte de vuelta en HashMap
   }
 
   /// Reads from the stream, handles early errors, and returns a Request plus optional error Response.

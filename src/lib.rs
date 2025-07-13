@@ -17,32 +17,29 @@ pub use core::test_utils;
 
 pub type Handler = fn(&Request) -> Response;
 
-#[cfg(feature = "sync")]
 pub mod runtime {
+  #[cfg(feature = "sync")]
   pub mod sync {
     pub mod server;
     pub mod threadpool;
   }
-}
 
-#[cfg(feature = "async_tokio")]
-pub mod runtime {
+  #[cfg(feature = "async_tokio")]
   pub mod async_tokio {
+    pub mod common;
     pub mod tokio;
   }
-}
 
-#[cfg(feature = "async_smol")]
-pub mod runtime {
+  #[cfg(feature = "async_smol")]
   pub mod async_smol {
+    pub mod common;
     pub mod smol;
   }
-}
 
-#[cfg(feature = "async_std")]
-pub mod runtime {
+  #[cfg(feature = "async_std")]
   pub mod async_std {
     pub mod async_std;
+    pub mod common;
   }
 }
 
@@ -51,9 +48,11 @@ pub use runtime::sync::server::Server;
 #[cfg(feature = "sync")]
 pub use runtime::sync::threadpool::ThreadPool;
 
-#[cfg(feature = "async_smol")]
-pub use runtime::async_smol::smol::{Server, ThreadPool};
-#[cfg(feature = "async_std")]
-pub use runtime::async_std::async_std::{Server, ThreadPool};
 #[cfg(feature = "async_tokio")]
-pub use runtime::async_tokio::tokio::{Server, ThreadPool};
+pub use runtime::async_tokio::tokio::Server;
+
+#[cfg(feature = "async_smol")]
+pub use runtime::async_smol::smol::Server;
+
+#[cfg(feature = "async_std")]
+pub use runtime::async_std::async_std::Server;
