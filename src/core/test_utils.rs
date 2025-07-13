@@ -1,4 +1,11 @@
-use crate::Server;
+#[cfg(feature = "async_std")]
+use crate::runtime::r#async::async_std::Server;
+#[cfg(feature = "async_smol")]
+use crate::runtime::r#async::smol::Server;
+#[cfg(feature = "async_tokio")]
+use crate::runtime::r#async::tokio::Server;
+#[cfg(feature = "sync")]
+use crate::runtime::sync::server::Server;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Once;

@@ -1,6 +1,6 @@
 // src/runtime/async/smol.rs
 use super::common::{handle_conn, ServerRuntime};
-use crate::core::{Rh, Rt};
+use crate::{Rh, Rt};
 use smol::Async;
 use std::collections::HashMap;
 use std::net::TcpListener as StdListener;

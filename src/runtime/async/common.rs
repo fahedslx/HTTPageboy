@@ -1,5 +1,6 @@
-// src/runtime/common.rs
-use crate::core::{Request, Response, Rh, Rt};
+use crate::handle_request;
+use crate::runtime::sync::server;
+use crate::{Request, Response, Rh, Rt};
 use std::collections::HashMap;
 
 /// Trait that abstracts over sync or async runtimes
@@ -18,6 +19,6 @@ pub fn handle_conn(
   let stream = &raw; // abstrae tanto TcpStream como conexiones async
   let (mut req, early) = Request::parse_stream(stream, routes, files);
   let resp = early
-    .unwrap_or_else(|| super::core::handle_request(&mut req, routes, files).unwrap_or_default());
-  super::runtime::sync::server::send_response(stream, &resp, auto_close);
+    .unwrap_or_else(|| handle_request(&mut req, routes, files).unwrap_or_default());
+  server::send_response(stream, &resp, auto_close);
 }

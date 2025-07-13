@@ -25,34 +25,32 @@ pub mod runtime {
   }
 
   #[cfg(feature = "async_tokio")]
-  pub mod async_tokio {
+  pub mod r#async {
     pub mod common;
     pub mod tokio;
   }
 
   #[cfg(feature = "async_smol")]
-  pub mod async_smol {
+  pub mod r#async {
     pub mod common;
     pub mod smol;
   }
 
   #[cfg(feature = "async_std")]
-  pub mod async_std {
+  pub mod r#async {
     pub mod async_std;
     pub mod common;
   }
 }
 
 #[cfg(feature = "sync")]
-pub use runtime::sync::server::Server;
-#[cfg(feature = "sync")]
-pub use runtime::sync::threadpool::ThreadPool;
+pub use runtime::sync::server::Server as SyncServer;
 
 #[cfg(feature = "async_tokio")]
-pub use runtime::async_tokio::tokio::Server;
+pub use runtime::r#async::tokio::Server as TokioServer;
 
 #[cfg(feature = "async_smol")]
-pub use runtime::async_smol::smol::Server;
+pub use runtime::r#async::smol::Server as SmolServer;
 
 #[cfg(feature = "async_std")]
-pub use runtime::async_std::async_std::Server;
+pub use runtime::r#async::async_std::Server as AsyncStdServer;
