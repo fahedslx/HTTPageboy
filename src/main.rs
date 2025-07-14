@@ -1,4 +1,6 @@
-use httpageboy::{Request, Response, Rt, Server, StatusCode}; // Rt is alias for ResponseType
+#[cfg(feature = "sync")]
+use httpageboy::Server;
+use httpageboy::{Request, Response, Rt, StatusCode};
 
 fn main() {
   let serving_url: &str = "127.0.0.1:7878";

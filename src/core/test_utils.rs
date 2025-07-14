@@ -1,3 +1,9 @@
+use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::sync::Once;
+use std::thread;
+use std::time::Duration;
+
 #[cfg(feature = "async_std")]
 use crate::runtime::r#async::async_std::Server;
 #[cfg(feature = "async_smol")]
@@ -6,11 +12,6 @@ use crate::runtime::r#async::smol::Server;
 use crate::runtime::r#async::tokio::Server;
 #[cfg(feature = "sync")]
 use crate::runtime::sync::server::Server;
-use std::io::{Read, Write};
-use std::net::TcpStream;
-use std::sync::Once;
-use std::thread;
-use std::time::Duration;
 
 pub const SERVER_URL: &str = "127.0.0.1:7878";
 pub const POOL_SIZE: u8 = 10;

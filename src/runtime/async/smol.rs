@@ -1,25 +1,16 @@
-// src/runtime/async/smol.rs
-use super::common::{handle_conn, ServerRuntime};
-use crate::{Rh, Rt};
-use smol::Async;
+use super::common::Server;
+use crate::core::{request_handler::Rh, request_type::Rt};
 use std::collections::HashMap;
-use std::net::TcpListener as StdListener;
 
-pub struct Server;
+pub use Server;
 
-impl ServerRuntime for Server {
-  fn run(addr: &str, routes: HashMap<(Rt, String), Rh>, files: Vec<String>, _threads: usize) {
-    smol::block_on(async {
-      let listener = Async::<StdListener>::bind(addr).unwrap();
-      loop {
-        let (stream, _) = listener.accept().await.unwrap();
-        let routes = routes.clone();
-        let files = files.clone();
-        smol::spawn(async move {
-          handle_conn(stream, &routes, &files, false);
-        })
-        .detach();
-      }
-    });
-  }
+// Mantener la misma interfaz que la versión síncrona
+pub fn run_server(
+  addr: &str,
+  pool_size: u8,
+  routes: Option<HashMap<(Rt, String), Rh>>,
+) -> Result<(), std::io::Error> {
+  let server = Server::new(addr, pool_size, routes)?;
+  server.run();
+  Ok(())
 }

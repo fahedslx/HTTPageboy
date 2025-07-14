@@ -40,14 +40,11 @@ pub fn secure_path(base: &str, req_path: &str) -> Option<String> {
   let path = req_path.split('?').next().unwrap_or("");
   let path = path.trim_start_matches('/');
   let mut full = std::path::Path::new(base).join(path);
-  // println!("🔍 secure_path base: {:?}, full: {:?}", base, full);
   if full.is_dir() {
     full = full.join("index.html");
   }
   if let Ok(canon) = full.canonicalize() {
-    // println!("🔍 canonical full path: {:?}", canon);
     if let Ok(abs_base) = std::path::Path::new(base).canonicalize() {
-      // println!("🔍 canonical base path: {:?}", abs_base);
       if canon.starts_with(&abs_base) {
         return Some(canon.to_string_lossy().to_string());
       }
