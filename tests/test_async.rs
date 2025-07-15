@@ -1,10 +1,9 @@
 use std::collections::BTreeMap;
 
 use httpageboy::test_utils::{run_test, setup_test_server, POOL_SIZE, SERVER_URL};
-use httpageboy::{Request, Response, Rt, StatusCode};
-
 #[cfg(feature = "async_tokio")]
-pub use runtime::r#async::tokio::Server;
+use httpageboy::Server;
+use httpageboy::{Request, Response, Rt, StatusCode};
 
 fn create_test_server() -> Server {
   let mut server = Server::new(SERVER_URL, POOL_SIZE, None).unwrap();
