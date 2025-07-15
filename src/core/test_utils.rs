@@ -4,14 +4,26 @@ use std::sync::Once;
 use std::thread;
 use std::time::Duration;
 
-#[cfg(feature = "async_std")]
-use crate::runtime::r#async::async_std::Server;
-#[cfg(feature = "async_smol")]
-use crate::runtime::r#async::smol::Server;
-#[cfg(feature = "async_tokio")]
-use crate::runtime::r#async::tokio::Server;
 #[cfg(feature = "sync")]
 use crate::runtime::sync::server::Server;
+
+#[cfg(all(not(feature = "sync"), feature = "async_tokio"))]
+use crate::runtime::r#async::tokio::Server;
+
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  feature = "async_smol"
+))]
+use crate::runtime::r#async::smol::Server;
+
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  not(feature = "async_smol"),
+  feature = "async_std"
+))]
+use crate::runtime::r#async::async_std::Server;
 
 pub const SERVER_URL: &str = "127.0.0.1:7878";
 pub const POOL_SIZE: u8 = 10;
@@ -23,7 +35,7 @@ where
   F: FnOnce() -> Server + Send + 'static,
 {
   INIT.call_once(|| {
-    let server = server_factory();
+    let server = server_factory(); // si tu closure espera args, pásalos aquí
     thread::spawn(move || {
       server.run();
     });
@@ -45,7 +57,7 @@ pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {
 
   assert!(
     buffer_string.contains(&expected_response_string),
-    "ASSERT FAILED:\\n\\nRESPONSE: {} \\nEXPECTED: {} \\n\\n",
+    "ASSERT FAILED:\n\nRESPONSE: {} \nEXPECTED: {} \n\n",
     buffer_string,
     expected_response_string
   );

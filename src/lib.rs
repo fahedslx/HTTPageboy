@@ -36,15 +36,23 @@ pub mod runtime {
   }
 }
 
-// Exporta siempre con alias para evitar conflictos
 #[cfg(feature = "sync")]
-pub use runtime::sync::server::Server as SyncServer;
+pub use runtime::sync::server::Server;
 
-#[cfg(feature = "async_tokio")]
-pub use runtime::r#async::tokio::Server as TokioServer;
+#[cfg(all(not(feature = "sync"), feature = "async_tokio"))]
+pub use runtime::r#async::tokio::Server;
 
-#[cfg(feature = "async_smol")]
-pub use runtime::r#async::smol::Server as SmolServer;
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  feature = "async_smol"
+))]
+pub use runtime::r#async::smol::Server;
 
-#[cfg(feature = "async_std")]
-pub use runtime::r#async::async_std::Server as AsyncStdServer;
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  not(feature = "async_smol"),
+  feature = "async_std"
+))]
+pub use runtime::r#async::async_std::Server;

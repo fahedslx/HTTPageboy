@@ -39,9 +39,10 @@ impl Request {
   }
 
   /// Reads from the stream, handles early errors, and returns a Request plus optional error Response.
+  #[cfg(feature = "sync")]
   pub fn parse_stream(
-    stream: &TcpStream,
-    routes: &HashMap<(Rt, String), Rh>,
+    stream: &std::net::TcpStream,
+    routes: &std::collections::HashMap<(Rt, String), Rh>,
     file_bases: &[String],
   ) -> (Self, Option<Response>) {
     use std::io::{BufRead, BufReader, Read};
@@ -49,7 +50,6 @@ impl Request {
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
 
-    // read headers
     loop {
       let mut line = String::new();
       if reader
@@ -66,7 +66,6 @@ impl Request {
       }
     }
 
-    // read body
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -88,7 +87,66 @@ impl Request {
       raw.push_str(&rest);
     }
 
-    // early error: empty or malformed request
+    Self::parse_raw(raw, routes, file_bases)
+  }
+
+  #[cfg(feature = "async_tokio")]
+  pub async fn parse_stream(
+    stream: &mut tokio::net::TcpStream,
+    routes: &std::collections::HashMap<(Rt, String), Rh>,
+    file_bases: &[String],
+  ) -> (Self, Option<Response>) {
+    use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+
+    let mut reader = BufReader::new(stream);
+    let mut raw = String::new();
+
+    loop {
+      let mut line = String::new();
+      if reader
+        .read_line(&mut line)
+        .await
+        .ok()
+        .filter(|&n| n > 0)
+        .is_none()
+      {
+        break;
+      }
+      raw.push_str(&line);
+      if raw.contains("\r\n\r\n") {
+        break;
+      }
+    }
+
+    let content_length = raw
+      .lines()
+      .find_map(|l| {
+        if l.to_ascii_lowercase().starts_with("content-length:") {
+          l.split(':').nth(1)?.trim().parse::<usize>().ok()
+        } else {
+          None
+        }
+      })
+      .unwrap_or(0);
+
+    if content_length > 0 {
+      let mut buf = vec![0; content_length];
+      let _ = reader.read_exact(&mut buf).await;
+      raw.push_str(&String::from_utf8_lossy(&buf));
+    } else {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest).await;
+      raw.push_str(&rest);
+    }
+
+    Self::parse_raw(raw, routes, file_bases)
+  }
+
+  pub fn parse_raw(
+    raw: String,
+    routes: &std::collections::HashMap<(Rt, String), Rh>,
+    file_bases: &[String],
+  ) -> (Self, Option<Response>) {
     if raw.trim().is_empty() {
       let resp = Response {
         status: StatusCode::BadRequest.to_string(),
@@ -97,6 +155,7 @@ impl Request {
       };
       return (Self::default(), Some(resp));
     }
+
     let parts: Vec<&str> = raw.split_whitespace().collect();
     if parts.len() < 3 {
       let resp = Response {
@@ -111,7 +170,6 @@ impl Request {
     let path_str = parts[1];
     let version = parts[2];
 
-    // early error: method not allowed
     let allowed = ["GET", "POST", "PUT", "DELETE"];
     if !allowed.contains(&method_str) {
       let resp = Response {
@@ -121,7 +179,7 @@ impl Request {
       };
       return (Self::default(), Some(resp));
     }
-    // early error: unsupported HTTP version
+
     if version != "HTTP/1.1" {
       let resp = Response {
         status: StatusCode::HttpVersionNotSupported.to_string(),
@@ -130,7 +188,7 @@ impl Request {
       };
       return (Self::default(), Some(resp));
     }
-    // early error: URI too long
+
     const MAX_URI: usize = 2000;
     if path_str.len() > MAX_URI {
       let resp = Response {
@@ -141,7 +199,6 @@ impl Request {
       return (Self::default(), Some(resp));
     }
 
-    // normal request parsing
     let mut req = Self::parse_raw(raw, routes);
     let early = req.route(routes, file_bases);
     (req, early)
