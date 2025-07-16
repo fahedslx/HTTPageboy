@@ -41,6 +41,23 @@ fn demo_get(_request: &Request) -> Response {
 }
 ```
 
+## Testing
+
+
+//YOU CAN ALSO FIND MANY EXAMPLES HERE
+
+You can run the tests using `cargo test`.
+
+For synchronous tests, simply run:
+```bash
+cargo test
+```
+
+For asynchronous tests (using `tokio` runtime), run with the `async_tokio` feature:
+```bash
+cargo test --features async_tokio --test test_async
+```
+
 ## License
 
 Copyright (c) 2025 [fahedsl](https://gitlab.com/fahedsl).
