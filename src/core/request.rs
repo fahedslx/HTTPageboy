@@ -1,4 +1,3 @@
-// src/core/request.rs
 use std::collections::{BTreeMap, HashMap};
 
 #[cfg(feature = "sync")]
@@ -133,6 +132,111 @@ impl Request {
       let _ = reader.read_to_string(&mut rest).await;
       raw.push_str(&rest);
     }
+    Self::parse_raw(raw, routes, file_bases)
+  }
+
+  #[cfg(feature = "async_std")]
+  pub async fn parse_stream_async(
+    stream: &mut async_std::net::TcpStream,
+    routes: &HashMap<(Rt, String), Rh>,
+    file_bases: &[String],
+  ) -> (Self, Option<Response>) {
+    use async_std::io::{BufReadExt, BufReader, ReadExt};
+
+    let mut reader = BufReader::new(stream);
+    let mut raw = String::new();
+
+    // Read headers
+    loop {
+      let mut line = String::new();
+      if reader
+        .read_line(&mut line)
+        .await
+        .ok()
+        .filter(|&n| n > 0)
+        .is_none()
+      {
+        break;
+      }
+      raw.push_str(&line);
+      if raw.contains("\r\n\r\n") {
+        break;
+      }
+    }
+
+    // Read body
+    let content_length = raw
+      .lines()
+      .find_map(|l| {
+        if l.to_lowercase().starts_with("content-length:") {
+          l.split(':').nth(1)?.trim().parse::<usize>().ok()
+        } else {
+          None
+        }
+      })
+      .unwrap_or(0);
+    if content_length > 0 {
+      let mut buf = vec![0; content_length];
+      let _ = reader.read_exact(&mut buf).await;
+      raw.push_str(&String::from_utf8_lossy(&buf));
+    } else {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest).await;
+      raw.push_str(&rest);
+    }
+
+    Self::parse_raw(raw, routes, file_bases)
+  }
+
+  #[cfg(feature = "async_smol")]
+  pub async fn parse_stream_async(
+    stream: &mut smol::net::TcpStream,
+    routes: &HashMap<(Rt, String), Rh>,
+    file_bases: &[String],
+  ) -> (Self, Option<Response>) {
+    use futures_lite::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+
+    let mut reader = BufReader::new(stream);
+    let mut raw = String::new();
+
+    loop {
+      let mut line = String::new();
+      if reader
+        .read_line(&mut line)
+        .await
+        .ok()
+        .filter(|&n| n > 0)
+        .is_none()
+      {
+        break;
+      }
+      raw.push_str(&line);
+      if raw.contains("\r\n\r\n") {
+        break;
+      }
+    }
+
+    let content_length = raw
+      .lines()
+      .find_map(|l| {
+        if l.to_lowercase().starts_with("content-length:") {
+          l.split(':').nth(1)?.trim().parse::<usize>().ok()
+        } else {
+          None
+        }
+      })
+      .unwrap_or(0);
+
+    if content_length > 0 {
+      let mut buf = vec![0; content_length];
+      let _ = reader.read_exact(&mut buf).await;
+      raw.push_str(&String::from_utf8_lossy(&buf));
+    } else {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest).await;
+      raw.push_str(&rest);
+    }
+
     Self::parse_raw(raw, routes, file_bases)
   }
 

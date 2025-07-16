@@ -28,7 +28,6 @@ pub mod runtime {
   pub mod r#async {
     #[cfg(feature = "async_std")]
     pub mod async_std;
-    pub mod server;
     #[cfg(feature = "async_smol")]
     pub mod smol;
     #[cfg(feature = "async_tokio")]

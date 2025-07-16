@@ -19,12 +19,12 @@ path = "src/lib.rs"
 default = ["sync"]
 sync = []
 async_tokio = ["tokio"]
-async_smol = ["smol"]
+async_smol = ["smol", "futures-lite"]
 async_std = ["async-std"]
 
 [dependencies]
-async-std = { version = "1", optional = true }
-futures = { version = "0.3", optional = true, features = ["async-await"] }
+async-std = { version = "1", optional = true, features = ["attributes"] }
+futures-lite = { version = "1.8", optional = true }
 smol = { version = "1", optional = true }
 tokio = { version = "1", optional = true, features = [
   "rt",
