@@ -1,3 +1,4 @@
+// src/runtime/async/tokio.rs
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -22,11 +23,9 @@ impl Server {
     routes_list: Option<HashMap<(Rt, String), Rh>>,
   ) -> std::io::Result<Server> {
     let listener = TcpListener::bind(serving_url).await?;
-    let routes = Arc::new(routes_list.unwrap_or_default());
-
     Ok(Server {
       listener,
-      routes,
+      routes: Arc::new(routes_list.unwrap_or_default()),
       files_sources: Arc::new(Vec::new()),
       auto_close: false,
     })
@@ -53,34 +52,27 @@ impl Server {
 
   pub async fn run(&self) {
     loop {
-      let (stream, _) = match self.listener.accept().await {
-        Ok(s) => s,
+      let (mut stream, _) = match self.listener.accept().await {
+        Ok(p) => p,
         Err(_) => continue,
       };
-
       let routes = self.routes.clone();
       let sources = self.files_sources.clone();
       let close_flag = self.auto_close;
-
       tokio::spawn(async move {
-        let (mut request, early_resp) = Request::parse_stream(&stream, &routes, &sources).await;
-
-        let answer = if let Some(resp) = early_resp {
-          Some(resp)
-        } else {
-          handle_request(&mut request, &routes, &sources)
-        };
-
+        let (mut request, early_resp) =
+          Request::parse_stream_async(&mut stream, &routes, &sources).await;
+        let answer = early_resp.or_else(|| handle_request(&mut request, &routes, &sources));
         match answer {
-          Some(response) => send_response(stream, &response, close_flag).await,
-          None => send_response(stream, &Response::new(), close_flag).await,
+          Some(resp) => send_response(&mut stream, &resp, close_flag).await,
+          None => send_response(&mut stream, &Response::new(), close_flag).await,
         }
       });
     }
   }
 }
 
-async fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
+async fn send_response(stream: &mut TcpStream, response: &Response, close: bool) {
   let connection_header = if close { "Connection: close\r\n" } else { "" };
   let header = format!(
     "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}\r\n",
@@ -90,14 +82,12 @@ async fn send_response(mut stream: TcpStream, response: &Response, close: bool) 
     connection_header
   );
   let _ = stream.write_all(header.as_bytes()).await;
-
   if response.content_type.starts_with("image/") {
     let _ = stream.write_all(&response.content).await;
   } else {
     let text = String::from_utf8_lossy(&response.content);
     let _ = stream.write_all(text.as_bytes()).await;
   }
-
   let _ = stream.flush().await;
   if close {
     let _ = stream.shutdown().await;
