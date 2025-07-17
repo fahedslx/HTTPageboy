@@ -33,6 +33,8 @@ pub mod runtime {
     #[cfg(feature = "async_tokio")]
     pub mod tokio;
   }
+
+  pub mod shared;
 }
 
 #[cfg(feature = "sync")]

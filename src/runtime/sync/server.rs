@@ -7,6 +7,7 @@ use crate::core::request::{handle_request, Request};
 pub use crate::core::request_handler::Rh;
 pub use crate::core::request_type::Rt;
 use crate::core::response::Response;
+use crate::runtime::shared::print_server_info;
 pub use crate::runtime::sync::threadpool::ThreadPool;
 
 pub struct Server {
@@ -54,25 +55,7 @@ impl Server {
   }
 
   pub fn run(&self) {
-    {
-      println!("Connection autoclose set to {:?}", self.auto_close);
-
-      let addr = format!("http://{}", self.listener.local_addr().unwrap());
-      let green_addr = format!("\x1b[32m{}\x1b[0m", addr);
-
-      #[cfg(feature = "sync")]
-      println!("Serving (sync) on {}", green_addr);
-
-      #[cfg(feature = "async_tokio")]
-      println!("Serving (async_tokio) on {}", green_addr);
-
-      #[cfg(feature = "async_std")]
-      println!("Serving (async_std) on {}", green_addr);
-
-      #[cfg(feature = "async_smol")]
-      println!("Serving (async_smol) on {}", green_addr);
-    }
-
+    print_server_info(self.listener.local_addr().unwrap(), self.auto_close);
     for stream in self.listener.incoming() {
       match stream {
         Ok(stream) => {

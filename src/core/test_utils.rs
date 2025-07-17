@@ -26,17 +26,28 @@ pub const POOL_SIZE: u8 = 10;
 pub const INTERVAL: Duration = Duration::from_millis(250);
 static INIT: Once = Once::new();
 
+#[cfg(feature = "sync")]
 pub fn setup_test_server<F>(server_factory: F)
 where
   F: FnOnce() -> Server + Send + 'static,
 {
   INIT.call_once(|| {
-    let server = server_factory(); // si tu closure espera args, pásalos aquí
+    let server = server_factory();
     thread::spawn(move || {
       server.run();
     });
     thread::sleep(INTERVAL);
   });
+}
+
+#[cfg(not(feature = "sync"))]
+pub fn setup_test_server<F>(_server_factory: F)
+where
+  F: FnOnce() -> Server + Send + 'static,
+{
+  panic!(
+    "setup_test_server no está implementado para runtimes async. Usa un test async con `.await` en `server.run()`."
+  );
 }
 
 pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {

@@ -8,6 +8,7 @@ use crate::core::request::{handle_request, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
+use crate::runtime::shared::print_server_info;
 
 pub struct Server {
   listener: TcpListener,
@@ -50,7 +51,7 @@ impl Server {
 
   /// Start server
   pub async fn run(&self) {
-    println!("Server running on {}", self.listener.local_addr().unwrap());
+    print_server_info(self.listener.local_addr().unwrap(), self.auto_close);
     loop {
       let (mut stream, _) = match self.listener.accept().await {
         Ok(p) => p,

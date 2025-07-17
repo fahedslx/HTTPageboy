@@ -9,6 +9,7 @@ use crate::core::request::{handle_request, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
+use crate::runtime::shared::print_server_info;
 
 /// A non‑blocking HTTP server powered by Smol + async-net.
 pub struct Server {
@@ -20,10 +21,7 @@ pub struct Server {
 
 impl Server {
   /// Bind to `serving_url` and prepare route map.
-  pub async fn new(
-    serving_url: &str,
-    routes_list: Option<HashMap<(Rt, String), Rh>>,
-  ) -> std::io::Result<Self> {
+  pub async fn new(serving_url: &str, routes_list: Option<HashMap<(Rt, String), Rh>>) -> std::io::Result<Self> {
     let listener = TcpListener::bind(serving_url).await?;
     Ok(Self {
       listener,
@@ -47,14 +45,12 @@ impl Server {
 
   /// Add a directory for static file serving.
   pub fn add_files_source<S: Into<String>>(&mut self, base: S) {
-    Arc::get_mut(&mut self.file_sources)
-      .unwrap()
-      .push(base.into());
+    Arc::get_mut(&mut self.file_sources).unwrap().push(base.into());
   }
 
   /// Start accepting connections and dispatching handlers.
   pub async fn run(&self) {
-    println!("Server running on {}", self.listener.local_addr().unwrap());
+    print_server_info(self.listener.local_addr().unwrap(), self.auto_close);
     loop {
       let (mut stream, _) = match self.listener.accept().await {
         Ok(pair) => pair,
