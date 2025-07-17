@@ -29,7 +29,7 @@ impl Server {
       listener,
       routes: Arc::new(routes_list.unwrap_or_default()),
       file_sources: Arc::new(Vec::new()),
-      auto_close: false,
+      auto_close: true,
     })
   }
 
@@ -54,6 +54,7 @@ impl Server {
 
   /// Start accepting connections and dispatching handlers.
   pub async fn run(&self) {
+    println!("Server running on {}", self.listener.local_addr().unwrap());
     loop {
       let (mut stream, _) = match self.listener.accept().await {
         Ok(pair) => pair,

@@ -32,12 +32,12 @@ impl Server {
       pool,
       routes,
       files_sources: Vec::new(),
-      auto_close: false,
+      auto_close: true,
     })
   }
 
-  pub fn set_auto_close(&mut self, active: bool) {
-    self.auto_close = active;
+  pub fn set_auto_close(&mut self, state: bool) {
+    self.auto_close = state;
   }
 
   pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
@@ -54,6 +54,25 @@ impl Server {
   }
 
   pub fn run(&self) {
+    {
+      println!("Connection autoclose set to {:?}", self.auto_close);
+
+      let addr = format!("http://{}", self.listener.local_addr().unwrap());
+      let green_addr = format!("\x1b[32m{}\x1b[0m", addr);
+
+      #[cfg(feature = "sync")]
+      println!("Serving (sync) on {}", green_addr);
+
+      #[cfg(feature = "async_tokio")]
+      println!("Serving (async_tokio) on {}", green_addr);
+
+      #[cfg(feature = "async_std")]
+      println!("Serving (async_std) on {}", green_addr);
+
+      #[cfg(feature = "async_smol")]
+      println!("Serving (async_smol) on {}", green_addr);
+    }
+
     for stream in self.listener.incoming() {
       match stream {
         Ok(stream) => {
@@ -63,8 +82,7 @@ impl Server {
           let pool = Arc::clone(&self.pool);
           pool.lock().unwrap().run(move || {
             // 1. Leer request y posible respuesta de error temprana
-            let (mut request, early_resp) =
-              Request::parse_stream(&stream, &routes_local, &sources_local);
+            let (mut request, early_resp) = Request::parse_stream(&stream, &routes_local, &sources_local);
             // 2. Si hay respuesta temprana (400, 414, 505), la usamos
             let answer = if let Some(resp) = early_resp {
               Some(resp)
@@ -72,8 +90,8 @@ impl Server {
               handle_request(&mut request, &routes_local, &sources_local)
             };
             match answer {
-              Some(response) => send_response(stream, &response, close_flag),
-              None => send_response(stream, &Response::new(), close_flag),
+              Some(response) => Self::send_response(stream, &response, close_flag),
+              None => Self::send_response(stream, &Response::new(), close_flag),
             }
           });
         }
@@ -88,28 +106,28 @@ impl Server {
     let mut pool = self.pool.lock().unwrap();
     pool.stop();
   }
-}
 
-fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
-  let connection_header = if close { "Connection: close\r\n" } else { "" };
-  let header = format!(
-    "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}\r\n",
-    response.status,
-    response.content_type,
-    response.content.len(),
-    connection_header
-  );
-  let _ = stream.write_all(header.as_bytes());
+  fn send_response(mut stream: TcpStream, response: &Response, close: bool) {
+    let connection_header = if close { "Connection: close\r\n" } else { "" };
+    let header = format!(
+      "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}\r\n",
+      response.status,
+      response.content_type,
+      response.content.len(),
+      connection_header
+    );
+    let _ = stream.write_all(header.as_bytes());
 
-  if response.content_type.starts_with("image/") {
-    let _ = stream.write_all(&response.content);
-  } else {
-    let text = String::from_utf8_lossy(&response.content);
-    let _ = stream.write_all(text.as_bytes());
-  }
+    if response.content_type.starts_with("image/") {
+      let _ = stream.write_all(&response.content);
+    } else {
+      let text = String::from_utf8_lossy(&response.content);
+      let _ = stream.write_all(text.as_bytes());
+    }
 
-  let _ = stream.flush();
-  if close {
-    let _ = stream.shutdown(Shutdown::Both);
+    let _ = stream.flush();
+    if close {
+      let _ = stream.shutdown(Shutdown::Both);
+    }
   }
 }

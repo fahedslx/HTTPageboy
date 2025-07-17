@@ -65,6 +65,7 @@ impl Request {
         break;
       }
     }
+
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -75,15 +76,13 @@ impl Request {
         }
       })
       .unwrap_or(0);
+
     if content_length > 0 {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf);
       raw.push_str(&String::from_utf8_lossy(&buf));
-    } else {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest);
-      raw.push_str(&rest);
     }
+
     Self::parse_raw(raw, routes, file_bases)
   }
 
@@ -113,6 +112,7 @@ impl Request {
         break;
       }
     }
+
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -123,15 +123,13 @@ impl Request {
         }
       })
       .unwrap_or(0);
+
     if content_length > 0 {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf).await;
       raw.push_str(&String::from_utf8_lossy(&buf));
-    } else {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest).await;
-      raw.push_str(&rest);
     }
+
     Self::parse_raw(raw, routes, file_bases)
   }
 
@@ -146,7 +144,6 @@ impl Request {
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
 
-    // Read headers
     loop {
       let mut line = String::new();
       if reader
@@ -164,7 +161,6 @@ impl Request {
       }
     }
 
-    // Read body
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -175,14 +171,11 @@ impl Request {
         }
       })
       .unwrap_or(0);
+
     if content_length > 0 {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf).await;
       raw.push_str(&String::from_utf8_lossy(&buf));
-    } else {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest).await;
-      raw.push_str(&rest);
     }
 
     Self::parse_raw(raw, routes, file_bases)
@@ -231,10 +224,6 @@ impl Request {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf).await;
       raw.push_str(&String::from_utf8_lossy(&buf));
-    } else {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest).await;
-      raw.push_str(&rest);
     }
 
     Self::parse_raw(raw, routes, file_bases)

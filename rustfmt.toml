@@ -1,3 +1,4 @@
 hard_tabs = false
 tab_spaces = 2
 control_brace_style = "AlwaysNextLine"
+max_width = 120

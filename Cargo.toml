@@ -16,7 +16,6 @@ homepage = "https://gitlab.com/numanope/libs/rs/http-server"
 path = "src/lib.rs"
 
 [features]
-default = ["sync"]
 sync = []
 async_tokio = ["tokio"]
 async_smol = ["smol", "futures-lite"]

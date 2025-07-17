@@ -53,9 +53,11 @@ For synchronous tests, simply run:
 cargo test
 ```
 
-For asynchronous tests (using `tokio` runtime), run with the `async_tokio` feature:
+For asynchronous tests, run with the `async_tokio` feature:
 ```bash
-cargo test --features async_tokio --test test_async
+cargo test --features async_tokio --test test_asynctokio
+cargo test --features async_tokio --test test_asynctokio
+cargo test --features async_tokio --test test_asynctokio
 ```
 
 ## License

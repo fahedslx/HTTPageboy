@@ -17,44 +17,40 @@ pub struct Server {
 }
 
 impl Server {
-  /// Crea un servidor y enlaza la url
-  pub async fn new(
-    serving_url: &str,
-    routes_list: Option<HashMap<(Rt, String), Rh>>,
-  ) -> std::io::Result<Server> {
+  /// Create a new server and bind the url
+  pub async fn new(serving_url: &str, routes_list: Option<HashMap<(Rt, String), Rh>>) -> std::io::Result<Server> {
     let listener = TcpListener::bind(serving_url).await?;
     Ok(Server {
       listener,
       routes: Arc::new(routes_list.unwrap_or_default()),
       files_sources: Arc::new(Vec::new()),
-      auto_close: false,
+      auto_close: true,
     })
   }
 
-  /// Activa o desactiva cierre automático de conexión
+  /// Toggle automatic connection close
   pub fn set_auto_close(&mut self, active: bool) {
     self.auto_close = active;
   }
 
-  /// Agrega ruta HTTP
+  /// Add HTTP route
   pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
     Arc::get_mut(&mut self.routes)
       .unwrap()
       .insert((rt, path.to_string()), Rh { handler: rh });
   }
 
-  /// Agrega carpeta para servir archivos estáticos
+  /// Add static files source
   pub fn add_files_source<S>(&mut self, base: S)
   where
     S: Into<String>,
   {
-    Arc::get_mut(&mut self.files_sources)
-      .unwrap()
-      .push(base.into());
+    Arc::get_mut(&mut self.files_sources).unwrap().push(base.into());
   }
 
-  /// Inicia el servidor
+  /// Start server
   pub async fn run(&self) {
+    println!("Server running on {}", self.listener.local_addr().unwrap());
     loop {
       let (mut stream, _) = match self.listener.accept().await {
         Ok(p) => p,
@@ -75,6 +71,7 @@ impl Server {
   }
 }
 
+/// Send response to client
 async fn send_response(stream: &mut TcpStream, resp: &Response, close: bool) {
   let conn_hdr = if close { "Connection: close\r\n" } else { "" };
   let head = format!(

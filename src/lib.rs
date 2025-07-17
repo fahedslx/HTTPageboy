@@ -41,11 +41,7 @@ pub use runtime::sync::server::Server;
 #[cfg(all(not(feature = "sync"), feature = "async_tokio"))]
 pub use runtime::r#async::tokio::Server;
 
-#[cfg(all(
-  not(feature = "sync"),
-  not(feature = "async_tokio"),
-  feature = "async_smol"
-))]
+#[cfg(all(not(feature = "sync"), not(feature = "async_tokio"), feature = "async_smol"))]
 pub use runtime::r#async::smol::Server;
 
 #[cfg(all(
