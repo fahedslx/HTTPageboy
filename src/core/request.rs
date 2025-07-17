@@ -322,7 +322,7 @@ impl Request {
     } else {
       None
     };
-    for ((m, rp), _) in routes {
+    for (m, rp) in routes.keys() {
       if *m == RequestType::from_str(parts[0]) {
         for (k, v) in Self::extract_params(rp, &path) {
           params.insert(k, v);

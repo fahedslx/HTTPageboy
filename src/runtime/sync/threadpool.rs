@@ -40,10 +40,10 @@ impl Worker {
         }
       }
     });
-    return Worker {
+    Worker {
       id,
       thread: Some(thread),
-    };
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 pub fn get_content_type_quick(filename: &String) -> String {
-  let extension: Option<&str> = filename.split('.').last();
+  let extension: Option<&str> = filename.split('.').next_back();
 
   let content_type: &str = match extension {
     Some("png") => "image/png",
@@ -33,7 +33,7 @@ pub fn get_content_type_quick(filename: &String) -> String {
     _ => "application/octet-stream",
   };
 
-  return content_type.to_string();
+  content_type.to_string()
 }
 
 pub fn secure_path(base: &str, req_path: &str) -> Option<String> {
