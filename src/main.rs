@@ -32,7 +32,6 @@ fn main() {
 #[tokio::main]
 async fn main() {
   let serving_url: &str = "127.0.0.1:7878";
-  let threads_number: u8 = 10;
 
   let mut server = Server::new(serving_url, None).await.unwrap();
   server.add_route("/", Rt::GET, demo_get);
@@ -45,7 +44,6 @@ async fn main() {
 #[async_std::main]
 async fn main() {
   let serving_url: &str = "127.0.0.1:7878";
-  let threads_number: u8 = 10;
 
   let mut server = Server::new(serving_url, None).await.unwrap();
   server.add_route("/", Rt::GET, demo_get);
@@ -72,7 +70,6 @@ fn main() {
 ))]
 async fn run_smol() {
   let serving_url: &str = "127.0.0.1:7878";
-  let threads_number: u8 = 10;
 
   let mut server = Server::new(serving_url, None).await.unwrap();
   server.add_route("/", Rt::GET, demo_get);

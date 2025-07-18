@@ -1,12 +1,11 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Once;
+use std::thread;
 use std::time::Duration;
 
 #[cfg(feature = "sync")]
 use crate::runtime::sync::server::Server;
-#[cfg(feature = "sync")]
-use std::thread;
 
 #[cfg(feature = "async_tokio")]
 use crate::runtime::r#async::tokio::Server;
@@ -37,9 +36,8 @@ where
 }
 
 // async_tokio
-
 #[cfg(feature = "async_tokio")]
-pub fn setup_test_server<F, Fut>(server_factory: F)
+pub async fn setup_test_server<F, Fut>(server_factory: F)
 where
   F: FnOnce() -> Fut + Send + 'static,
   Fut: std::future::Future<Output = Server> + Send + 'static,
@@ -61,12 +59,8 @@ where
 }
 
 // async_std
-
 #[cfg(feature = "async_std")]
-use crate::runtime::r#async::async_std::Server;
-
-#[cfg(feature = "async_std")]
-pub fn setup_test_server<F, Fut>(server_factory: F)
+pub async fn setup_test_server<F, Fut>(server_factory: F)
 where
   F: FnOnce() -> Fut + Send + 'static,
   Fut: std::future::Future<Output = Server> + Send + 'static,
@@ -83,27 +77,20 @@ where
   });
 }
 
-// async_smol
-
 #[cfg(feature = "async_smol")]
-use crate::runtime::r#async::smol::Server;
-
-#[cfg(feature = "async_smol")]
-pub fn setup_test_server<F, Fut>(server_factory: F)
+pub async fn setup_test_server<F, Fut>(server_factory: F)
 where
   F: FnOnce() -> Fut + Send + 'static,
   Fut: std::future::Future<Output = Server> + Send + 'static,
 {
   INIT.call_once(|| {
-    thread::spawn(move || {
-      // Arranca Smol en este hilo
-      smol::run(async move {
-        let server = server_factory().await;
-        server.run().await;
-      });
+    smol::spawn(async move {
+      let server = server_factory().await;
+      server.run().await;
     });
-    thread::sleep(INTERVAL);
   });
+  // Timer de smol para dar tiempo a bind()
+  smol::Timer::after(INTERVAL).await;
 }
 
 pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {
