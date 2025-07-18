@@ -50,14 +50,11 @@ impl Request {
 
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
+
+    // Leer solo headers
     loop {
       let mut line = String::new();
-      if reader
-        .read_line(&mut line)
-        .ok()
-        .filter(|&n| n > 0)
-        .is_none()
-      {
+      if reader.read_line(&mut line).ok().filter(|&n| n > 0).is_none() {
         break;
       }
       raw.push_str(&line);
@@ -66,6 +63,14 @@ impl Request {
       }
     }
 
+    // Extraer método de la primera línea
+    let method = raw
+      .lines()
+      .next()
+      .and_then(|l| l.split_whitespace().next())
+      .unwrap_or("");
+
+    // Determinar longitud
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -78,9 +83,15 @@ impl Request {
       .unwrap_or(0);
 
     if content_length > 0 {
+      // Leer exactamente content_length
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf);
       raw.push_str(&String::from_utf8_lossy(&buf));
+    } else if method != "GET" {
+      // Leer todo hasta EOF para POST/PUT/DELETE sin Content-Length
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest);
+      raw.push_str(&rest);
     }
 
     Self::parse_raw(raw, routes, file_bases)
@@ -96,15 +107,11 @@ impl Request {
 
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
+
+    // Leer solo headers
     loop {
       let mut line = String::new();
-      if reader
-        .read_line(&mut line)
-        .await
-        .ok()
-        .filter(|&n| n > 0)
-        .is_none()
-      {
+      if reader.read_line(&mut line).await.ok().filter(|&n| n > 0).is_none() {
         break;
       }
       raw.push_str(&line);
@@ -113,6 +120,14 @@ impl Request {
       }
     }
 
+    // Extraer método
+    let method = raw
+      .lines()
+      .next()
+      .and_then(|l| l.split_whitespace().next())
+      .unwrap_or("");
+
+    // Determinar longitud
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -128,6 +143,10 @@ impl Request {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf).await;
       raw.push_str(&String::from_utf8_lossy(&buf));
+    } else if method != "GET" {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest).await;
+      raw.push_str(&rest);
     }
 
     Self::parse_raw(raw, routes, file_bases)
@@ -144,15 +163,10 @@ impl Request {
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
 
+    // Leer solo headers
     loop {
       let mut line = String::new();
-      if reader
-        .read_line(&mut line)
-        .await
-        .ok()
-        .filter(|&n| n > 0)
-        .is_none()
-      {
+      if reader.read_line(&mut line).await.ok().filter(|&n| n > 0).is_none() {
         break;
       }
       raw.push_str(&line);
@@ -161,6 +175,14 @@ impl Request {
       }
     }
 
+    // Extraer método
+    let method = raw
+      .lines()
+      .next()
+      .and_then(|l| l.split_whitespace().next())
+      .unwrap_or("");
+
+    // Determinar longitud
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -176,6 +198,10 @@ impl Request {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf).await;
       raw.push_str(&String::from_utf8_lossy(&buf));
+    } else if method != "GET" {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest).await;
+      raw.push_str(&rest);
     }
 
     Self::parse_raw(raw, routes, file_bases)
@@ -192,15 +218,10 @@ impl Request {
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
 
+    // Leer solo headers
     loop {
       let mut line = String::new();
-      if reader
-        .read_line(&mut line)
-        .await
-        .ok()
-        .filter(|&n| n > 0)
-        .is_none()
-      {
+      if reader.read_line(&mut line).await.ok().filter(|&n| n > 0).is_none() {
         break;
       }
       raw.push_str(&line);
@@ -209,6 +230,14 @@ impl Request {
       }
     }
 
+    // Extraer método
+    let method = raw
+      .lines()
+      .next()
+      .and_then(|l| l.split_whitespace().next())
+      .unwrap_or("");
+
+    // Determinar longitud
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -224,16 +253,16 @@ impl Request {
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf).await;
       raw.push_str(&String::from_utf8_lossy(&buf));
+    } else if method != "GET" {
+      let mut rest = String::new();
+      let _ = reader.read_to_string(&mut rest).await;
+      raw.push_str(&rest);
     }
 
     Self::parse_raw(raw, routes, file_bases)
   }
 
-  pub fn parse_raw(
-    raw: String,
-    routes: &HashMap<(Rt, String), Rh>,
-    file_bases: &[String],
-  ) -> (Self, Option<Response>) {
+  pub fn parse_raw(raw: String, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> (Self, Option<Response>) {
     if raw.trim().is_empty() {
       return (
         Self::default(),
@@ -347,11 +376,7 @@ impl Request {
     }
   }
 
-  pub fn route(
-    &mut self,
-    routes: &HashMap<(Rt, String), Rh>,
-    file_bases: &[String],
-  ) -> Option<Response> {
+  pub fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
       return Some((rh.handler)(self));
     }
