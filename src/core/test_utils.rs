@@ -1,24 +1,20 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Once;
-use std::thread;
 use std::time::Duration;
 
 #[cfg(feature = "sync")]
 use crate::runtime::sync::server::Server;
+#[cfg(feature = "sync")]
+use std::thread;
 
-#[cfg(all(not(feature = "sync"), feature = "async_tokio"))]
+#[cfg(feature = "async_tokio")]
 use crate::runtime::r#async::tokio::Server;
 
-#[cfg(all(not(feature = "sync"), not(feature = "async_tokio"), feature = "async_smol"))]
+#[cfg(feature = "async_smol")]
 use crate::runtime::r#async::smol::Server;
 
-#[cfg(all(
-  not(feature = "sync"),
-  not(feature = "async_tokio"),
-  not(feature = "async_smol"),
-  feature = "async_std"
-))]
+#[cfg(feature = "async_std")]
 use crate::runtime::r#async::async_std::Server;
 
 pub const SERVER_URL: &str = "127.0.0.1:7878";
@@ -40,14 +36,74 @@ where
   });
 }
 
-#[cfg(not(feature = "sync"))]
-pub fn setup_test_server<F>(_server_factory: F)
+// async_tokio
+
+#[cfg(feature = "async_tokio")]
+pub fn setup_test_server<F, Fut>(server_factory: F)
 where
-  F: FnOnce() -> Server + Send + 'static,
+  F: FnOnce() -> Fut + Send + 'static,
+  Fut: std::future::Future<Output = Server> + Send + 'static,
 {
-  panic!(
-    "setup_test_server no está implementado para runtimes async. Usa un test async con `.await` en `server.run()`."
-  );
+  INIT.call_once(|| {
+    thread::spawn(move || {
+      // Arranca un runtime Tokio en este hilo
+      let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+      rt.block_on(async move {
+        let server = server_factory().await;
+        server.run().await;
+      });
+    });
+    thread::sleep(INTERVAL);
+  });
+}
+
+// async_std
+
+#[cfg(feature = "async_std")]
+use crate::runtime::r#async::async_std::Server;
+
+#[cfg(feature = "async_std")]
+pub fn setup_test_server<F, Fut>(server_factory: F)
+where
+  F: FnOnce() -> Fut + Send + 'static,
+  Fut: std::future::Future<Output = Server> + Send + 'static,
+{
+  INIT.call_once(|| {
+    thread::spawn(move || {
+      // Arranca async-std en este hilo
+      async_std::task::block_on(async move {
+        let server = server_factory().await;
+        server.run().await;
+      });
+    });
+    thread::sleep(INTERVAL);
+  });
+}
+
+// async_smol
+
+#[cfg(feature = "async_smol")]
+use crate::runtime::r#async::smol::Server;
+
+#[cfg(feature = "async_smol")]
+pub fn setup_test_server<F, Fut>(server_factory: F)
+where
+  F: FnOnce() -> Fut + Send + 'static,
+  Fut: std::future::Future<Output = Server> + Send + 'static,
+{
+  INIT.call_once(|| {
+    thread::spawn(move || {
+      // Arranca Smol en este hilo
+      smol::run(async move {
+        let server = server_factory().await;
+        server.run().await;
+      });
+    });
+    thread::sleep(INTERVAL);
+  });
 }
 
 pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {
