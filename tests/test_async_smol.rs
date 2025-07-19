@@ -5,7 +5,7 @@ use httpageboy::Server;
 use httpageboy::{Request, Response, Rt, StatusCode};
 use std::collections::BTreeMap;
 
-fn create_test_server() -> Server {
+async fn create_test_server() -> Server {
   let mut server = Server::new(SERVER_URL, None).await.unwrap();
   server.add_route("/", Rt::GET, demo_handle_home);
   server.add_route("/test", Rt::GET, demo_handle_get);
