@@ -45,12 +45,12 @@ For synchronous tests:
 cargo test --features sync
 ```
 
-For asynchronous tests, enable the `async_tokio` feature:
+For asynchronous tests:
 ```bash
-cargo test --features async_tokio
-cargo test --features async_std
+cargo test --features async_tokio --test test_async_tokio
+cargo test --features async_std --test test_async_std
 // or
-cargo test --features async_smol
+cargo test --features async_smol --test test_async_smol
 ```
 
 ## Examples
