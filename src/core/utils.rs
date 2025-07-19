@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 pub fn get_content_type_quick(filename: &String) -> String {
   let extension: Option<&str> = filename.split('.').next_back();
 
@@ -36,19 +38,24 @@ pub fn get_content_type_quick(filename: &String) -> String {
   content_type.to_string()
 }
 
-pub fn secure_path(base: &str, req_path: &str) -> Option<String> {
-  let path = req_path.split('?').next().unwrap_or("");
-  let path = path.trim_start_matches('/');
-  let mut full = std::path::Path::new(base).join(path);
+/// Given a base directory `base` and a request path (`/algo.txt?...`), returns the canonical path of the file if it exists and is under `base`.
+pub fn secure_path(base: &Path, req_path: &str) -> Option<PathBuf> {
+  // remove querystring and leading `/`
+  let rel = req_path.split('?').next().unwrap_or("");
+  let rel = rel.trim_start_matches('/');
+
+  // build full path
+  let mut full = base.join(rel);
   if full.is_dir() {
     full = full.join("index.html");
   }
-  if let Ok(canon) = full.canonicalize() {
-    if let Ok(abs_base) = std::path::Path::new(base).canonicalize() {
-      if canon.starts_with(&abs_base) {
-        return Some(canon.to_string_lossy().to_string());
-      }
-    }
+
+  // canonicalize and check that it's inside base
+  let canon = full.canonicalize().ok()?;
+  let abs_base = base.canonicalize().ok()?;
+  if canon.starts_with(&abs_base) {
+    Some(canon)
+  } else {
+    None
   }
-  None
 }
