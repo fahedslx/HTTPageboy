@@ -1,10 +1,7 @@
-use std::collections::BTreeMap;
-
+#![cfg(feature = "sync")]
 use httpageboy::test_utils::{run_test, setup_test_server, POOL_SIZE, SERVER_URL};
-use httpageboy::{Request, Response, Rt, StatusCode};
-
-#[cfg(feature = "sync")]
-use httpageboy::Server;
+use httpageboy::{Request, Response, Rt, Server, StatusCode};
+use std::collections::BTreeMap;
 
 fn create_test_server() -> Server {
   let mut server = Server::new(SERVER_URL, POOL_SIZE, None).unwrap();
@@ -70,11 +67,9 @@ fn demo_handle_post(_request: &Request) -> Response {
 
   let request_string = format!(
     "Method: {}\nUri: {}\nParams: {:?}\nBody: {:?}",
-    _request.method,
-    _request.path,
-    ordered, // now printed in key order
-    _request.body
+    _request.method, _request.path, ordered, _request.body
   );
+
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
@@ -94,8 +89,7 @@ fn test_post() {
 fn test_post_with_query() {
   setup_test_server(create_test_server);
   let request = b"POST /test?foo=bar HTTP/1.1\r\n\r\nmueve tu cuerpo";
-  let expected_response =
-    b"Method: POST\nUri: /test\nParams: {\"foo\": \"bar\"}\nBody: \"mueve tu cuerpo\"";
+  let expected_response = b"Method: POST\nUri: /test\nParams: {\"foo\": \"bar\"}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
@@ -111,8 +105,7 @@ fn test_post_with_content_length() {
 fn test_post_with_params() {
   setup_test_server(create_test_server);
   let request = b"POST /test/hola/que?param4=hoy&param3=hace HTTP/1.1\r\n\r\nmueve tu cuerpo";
-  let expected_response =
-    b"Method: POST\n\
+  let expected_response = b"Method: POST\n\
       Uri: /test/hola/que\n\
       Params: {\"param1\": \"hola\", \"param2\": \"que\", \"param3\": \"hace\", \"param4\": \"hoy\"}\n\
       Body: \"mueve tu cuerpo\"";
@@ -123,8 +116,7 @@ fn test_post_with_params() {
 fn test_post_with_incomplete_path_params() {
   setup_test_server(create_test_server);
   let request = b"POST /test/hola HTTP/1.1\r\n\r\nmueve tu cuerpo";
-  let expected_response =
-    b"Method: POST\nUri: /test/hola\nParams: {\"param1\": \"hola\"}\nBody: \"mueve tu cuerpo\"";
+  let expected_response = b"Method: POST\nUri: /test/hola\nParams: {\"param1\": \"hola\"}\nBody: \"mueve tu cuerpo\"";
   run_test(request, expected_response);
 }
 
@@ -167,7 +159,7 @@ fn test_delete() {
 #[test]
 fn test_file_exists() {
   setup_test_server(create_test_server);
-  let request = b"GET /test.png HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  let request = b"GET /HTTPageboy.svg HTTP/1.1\r\nHost: localhost\r\n\r\n";
   let expected_response = b"HTTP/1.1 200 OK";
   run_test(request, expected_response);
 }
@@ -175,7 +167,7 @@ fn test_file_exists() {
 #[test]
 fn test_file_not_found() {
   setup_test_server(create_test_server);
-  let request = b"GET /test1.png HTTP/1.1\r\n\r\n";
+  let request = b"GET /test.png HTTP/1.1\r\n\r\n";
   let expected_response = b"HTTP/1.1 404 Not Found";
   run_test(request, expected_response);
 }
