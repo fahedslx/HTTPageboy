@@ -1,7 +1,8 @@
 use httpageboy::Server;
+#[allow(unused_imports)]
 use httpageboy::{Request, Response, Rt, StatusCode};
 
-// ====================== ROUTE HANDLER ======================
+// ROUTE HANDLER
 fn demo_get(_request: &Request) -> Response {
   Response {
     status: StatusCode::Ok.to_string(),
@@ -14,7 +15,7 @@ fn demo_get(_request: &Request) -> Response {
   }
 }
 
-// ====================== SYNC ======================
+// SYNC
 #[cfg(feature = "sync")]
 fn main() {
   let serving_url: &str = "127.0.0.1:7878";
@@ -26,7 +27,7 @@ fn main() {
   server.run();
 }
 
-// ====================== ASYNC TOKIO ======================
+// ASYNC TOKIO
 
 #[cfg(all(not(feature = "sync"), feature = "async_tokio"))]
 #[tokio::main]
@@ -39,7 +40,7 @@ async fn main() {
   server.run().await;
 }
 
-// ====================== ASYNC STD ======================
+// ASYNC STD
 #[cfg(all(not(feature = "sync"), not(feature = "async_tokio"), feature = "async_std"))]
 #[async_std::main]
 async fn main() {
@@ -51,7 +52,7 @@ async fn main() {
   server.run().await;
 }
 
-// ====================== ASYNC SMOL ======================
+// ASYNC SMOL
 #[cfg(all(
   not(feature = "sync"),
   not(feature = "async_tokio"),
@@ -75,4 +76,22 @@ async fn run_smol() {
   server.add_route("/", Rt::GET, demo_get);
   server.add_files_source("res");
   server.run().await;
+}
+
+// NO FEATURES
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  not(feature = "async_std"),
+  not(feature = "async_smol")
+))]
+fn main() {
+  eprintln!(
+    "\n🚨 Debes elegir una feature de runtime al compilar.\n\
+    Usa por ejemplo:\n\
+    cargo run --features sync\n\
+    cargo run --features async_tokio\n\
+    cargo run --features async_std\n\
+    cargo run --features async_smol\n"
+  );
 }
