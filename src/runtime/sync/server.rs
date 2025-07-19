@@ -1,6 +1,9 @@
+#![cfg(feature = "sync")]
+
 use std::collections::HashMap;
 use std::io::prelude::Write;
 use std::net::{Shutdown, TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::core::request::{handle_request, Request};
@@ -14,7 +17,7 @@ pub struct Server {
   listener: TcpListener,
   pool: Arc<Mutex<ThreadPool>>,
   routes: HashMap<(Rt, String), Rh>,
-  files_sources: Vec<String>,
+  files_sources: Vec<PathBuf>,
   auto_close: bool,
 }
 
@@ -51,7 +54,11 @@ impl Server {
   where
     S: Into<String>,
   {
-    self.files_sources.push(base.into());
+    let mut pb = base.into();
+    if let Ok(canon) = pb.canonicalize() {
+      pb = canon;
+    }
+    self.files_sources.push(pb);
   }
 
   pub fn run(&self) {
@@ -64,9 +71,7 @@ impl Server {
           let close_flag = self.auto_close;
           let pool = Arc::clone(&self.pool);
           pool.lock().unwrap().run(move || {
-            // 1. Leer request y posible respuesta de error temprana
             let (mut request, early_resp) = Request::parse_stream(&stream, &routes_local, &sources_local);
-            // 2. Si hay respuesta temprana (400, 414, 505), la usamos
             let answer = if let Some(resp) = early_resp {
               Some(resp)
             } else {
