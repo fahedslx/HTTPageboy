@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-pub fn get_content_type_quick(filename: &String) -> String {
-  let extension: Option<&str> = filename.split('.').next_back();
+pub fn get_content_type_quick(path: &Path) -> String {
+  let extension = path.extension().and_then(|s| s.to_str());
 
   let content_type: &str = match extension {
     Some("png") => "image/png",
@@ -40,17 +40,14 @@ pub fn get_content_type_quick(filename: &String) -> String {
 
 /// Given a base directory `base` and a request path (`/algo.txt?...`), returns the canonical path of the file if it exists and is under `base`.
 pub fn secure_path(base: &Path, req_path: &str) -> Option<PathBuf> {
-  // remove querystring and leading `/`
   let rel = req_path.split('?').next().unwrap_or("");
   let rel = rel.trim_start_matches('/');
 
-  // build full path
   let mut full = base.join(rel);
   if full.is_dir() {
     full = full.join("index.html");
   }
 
-  // canonicalize and check that it's inside base
   let canon = full.canonicalize().ok()?;
   let abs_base = base.canonicalize().ok()?;
   if canon.starts_with(&abs_base) {

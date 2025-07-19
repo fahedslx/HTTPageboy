@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::path::Path;
 
 #[cfg(feature = "sync")]
 use std::net::TcpStream;
@@ -10,7 +11,6 @@ use crate::core::request_handler::Rh;
 use crate::core::request_type::{RequestType, Rt};
 use crate::core::response::Response;
 use crate::core::status_code::StatusCode;
-use crate::core::utils::{get_content_type_quick, secure_path};
 
 pub struct Request {
   pub method: RequestType,
@@ -51,7 +51,7 @@ impl Request {
     let mut reader = BufReader::new(stream);
     let mut raw = String::new();
 
-    // Leer solo headers
+    // Read only headers
     loop {
       let mut line = String::new();
       if reader.read_line(&mut line).ok().filter(|&n| n > 0).is_none() {
@@ -63,14 +63,14 @@ impl Request {
       }
     }
 
-    // Extraer método de la primera línea
+    // Extract method from the first line
     let method = raw
       .lines()
       .next()
       .and_then(|l| l.split_whitespace().next())
       .unwrap_or("");
 
-    // Determinar longitud
+    // Determine length
     let content_length = raw
       .lines()
       .find_map(|l| {
@@ -83,12 +83,12 @@ impl Request {
       .unwrap_or(0);
 
     if content_length > 0 {
-      // Leer exactamente content_length
+      // Read exactly content_length
       let mut buf = vec![0; content_length];
       let _ = reader.read_exact(&mut buf);
       raw.push_str(&String::from_utf8_lossy(&buf));
     } else if method != "GET" {
-      // Leer todo hasta EOF para POST/PUT/DELETE sin Content-Length
+      // Read all until EOF for POST/PUT/DELETE without Content-Length
       let mut rest = String::new();
       let _ = reader.read_to_string(&mut rest);
       raw.push_str(&rest);
@@ -404,11 +404,12 @@ impl Request {
 
   fn serve_file(&self, bases: &[String]) -> Response {
     for base in bases {
-      if let Some(real) = secure_path(base, &self.path) {
-        if let Ok(data) = std::fs::read(&real) {
+      let base_path = Path::new(base);
+      if let Some(real_path) = crate::core::utils::secure_path(base_path, &self.path) {
+        if let Ok(data) = std::fs::read(&real_path) {
           return Response {
             status: StatusCode::Ok.to_string(),
-            content_type: get_content_type_quick(&real),
+            content_type: crate::core::utils::get_content_type_quick(&real_path),
             content: data,
           };
         }

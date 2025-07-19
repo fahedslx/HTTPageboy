@@ -13,7 +13,8 @@ fn create_test_server() -> Server {
   server.add_route("/test/{param1}/{param2}", Rt::POST, demo_handle_post);
   server.add_route("/test", Rt::PUT, demo_handle_put);
   server.add_route("/test", Rt::DELETE, demo_handle_delete);
-  server.add_files_source("res");
+  let res_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("res");
+  server.add_files_source(res_path.to_str().unwrap());
 
   server
 }
@@ -167,7 +168,7 @@ fn test_file_exists() {
 #[test]
 fn test_file_not_found() {
   setup_test_server(create_test_server);
-  let request = b"GET /test.png HTTP/1.1\r\n\r\n";
+  let request = b"GET /no_file_here.png HTTP/1.1\r\n\r\n";
   let expected_response = b"HTTP/1.1 404 Not Found";
   run_test(request, expected_response);
 }

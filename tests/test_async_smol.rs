@@ -185,7 +185,7 @@ fn test_file_exists() {
 fn test_file_not_found() {
   smol::block_on(async {
     setup_test_server(|| create_test_server()).await;
-    let request = b"GET /test1.png HTTP/1.1\r\n\r\n";
+    let request = b"GET /no_file_here.png HTTP/1.1\r\n\r\n";
     let expected = b"HTTP/1.1 404 Not Found";
     run_test(request, expected);
   });

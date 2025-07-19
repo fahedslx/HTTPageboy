@@ -17,7 +17,7 @@ pub struct Server {
   listener: TcpListener,
   pool: Arc<Mutex<ThreadPool>>,
   routes: HashMap<(Rt, String), Rh>,
-  files_sources: Vec<PathBuf>,
+  files_sources: Vec<String>,
   auto_close: bool,
 }
 
@@ -54,11 +54,12 @@ impl Server {
   where
     S: Into<String>,
   {
-    let mut pb = base.into();
-    if let Ok(canon) = pb.canonicalize() {
-      pb = canon;
-    }
-    self.files_sources.push(pb);
+    let s = base.into();
+    let canonical = PathBuf::from(&s)
+      .canonicalize()
+      .map(|p| p.to_string_lossy().to_string())
+      .unwrap_or(s.clone());
+    self.files_sources.push(canonical);
   }
 
   pub fn run(&self) {
