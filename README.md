@@ -4,17 +4,13 @@ Minimal HTTP server package for handling request/response transmission.
 Focuses only on transporting a well formed HTTP message; does not process or decide how the server behaves.
 Aspires to become runtime-agnostic, with minimal, solid, and flexible dependencies.
 
-`Request`: any HTTP request.
-`Route`: path + method + handler → returns Response.
-`Response`: bytes with content-type, sent to browser.
-
 ## Example
 
-`lib.rs` is the actual implementation of the server.
+The core logic resides in `src/lib.rs`.
 
-`main.rs` is this following example ready for execution. Just run `cargo run` on the terminal and go to [http://127.0.0.1:7878](http://127.0.0.1:7878).
+The following example is executable. Run `cargo run` to see the available variants and navigate to [http://127.0.0.1:7878](http://127.0.0.1:7878) in your browser.
 
-Creating a simple server:
+A basic server setup:
 
 ```rust
 use httpageboy::{Request, Response, Rt, Server, StatusCode}; // Rt is alias for ResponseType
@@ -29,36 +25,37 @@ fn main() {
 }
 
 fn demo_get(_request: &Request) -> Response {
-  return Response {
+  Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
-    content: "<!DOCTYPE html><html><head>
-        <meta charset=\"utf-8\">\
-        </head><body>🤓👉 <a href=\"/HTTPageboy.svg\">IMG</a></body></html>"
+    content: "<!DOCTYPE html><html><head>\
+<meta charset=\"utf-8\">\
+</head><body>🤓: Hi, this is Pageboy working.
+<br>Do you like the <a href=\"/HTTPageboy.svg\">new icon</a>?</body></html>"
       .as_bytes()
       .to_vec(),
-  };
+  }
 }
 ```
 
 ## Testing
 
-
-//YOU CAN ALSO FIND MANY EXAMPLES HERE
-
-You can run the tests using `cargo test`.
-
-For synchronous tests, simply run:
+For synchronous tests:
 ```bash
-cargo test
+cargo test --features sync
 ```
 
-For asynchronous tests, run with the `async_tokio` feature:
+For asynchronous tests, enable the `async_tokio` feature:
 ```bash
-cargo test --features async_tokio --test test_asynctokio
-cargo test --features async_tokio --test test_asynctokio
-cargo test --features async_tokio --test test_asynctokio
+cargo test --features async_tokio
+cargo test --features async_std
+// or
+cargo test --features async_smol
 ```
+
+## Examples
+
+Additional examples can be found within the tests.
 
 ## License
 
