@@ -19,7 +19,7 @@ fn demo_get(_request: &Request) -> Response {
     content_type: String::new(),
     content: "<!DOCTYPE html><html><head>\
 <meta charset=\"utf-8\">\
-</head><body>🤓👉 <a href=\"/test.png\">IMG</a></body></html>"
+</head><body>🤓👉 <a href=\"/HTTPageboy.svg\">IMG</a></body></html>"
       .as_bytes()
       .to_vec(),
   }
