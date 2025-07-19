@@ -1,13 +1,10 @@
-use httpageboy::Server;
-
-#[cfg(feature = "sync")]
-use httpageboy::{Request, Response, Rt, Server, StatusCode};
-
-#[cfg(all(
-  not(feature = "sync"),
-  any(feature = "async_tokio", feature = "async_std", feature = "async_smol")
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
 ))]
-use httpageboy::{Request, Response, Server, StatusCode};
+use httpageboy::{Request, Response, Rt, Server, StatusCode};
 
 // ROUTE HANDLER
 #[cfg(any(
@@ -99,6 +96,6 @@ async fn run_smol() {
 ))]
 fn main() {
   eprintln!(
-    "\n❌ No feature seleccionada.\n\nActiva una feature con:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
+    "\n❌ No feature selected. Select any of the following:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
   );
 }

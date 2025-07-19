@@ -1,5 +1,11 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_smol",
+  feature = "async_std"
+))]
 use std::sync::Once;
 #[allow(unused_imports)]
 use std::thread;
@@ -20,6 +26,12 @@ use crate::runtime::r#async::async_std::Server;
 pub const SERVER_URL: &str = "127.0.0.1:7878";
 pub const POOL_SIZE: u8 = 10;
 pub const INTERVAL: Duration = Duration::from_millis(250);
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_smol",
+  feature = "async_std"
+))]
 static INIT: Once = Once::new();
 
 #[cfg(feature = "sync")]
