@@ -37,6 +37,9 @@ pub mod runtime {
   pub mod shared;
 }
 
+#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+pub type AsyncHandler = fn(&Request) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>;
+
 #[cfg(feature = "sync")]
 pub use runtime::sync::server::Server;
 

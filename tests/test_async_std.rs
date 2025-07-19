@@ -154,7 +154,7 @@ async fn test_delete() {
 #[async_std::test]
 async fn test_file_exists() {
   setup_test_server(|| create_test_server()).await;
-  let request = b"GET /test.png HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  let request = b"GET /numano.png HTTP/1.1\r\nHost: localhost\r\n\r\n";
   let expected = b"HTTP/1.1 200 OK";
   run_test(request, expected);
 }

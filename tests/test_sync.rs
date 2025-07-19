@@ -160,7 +160,7 @@ fn test_delete() {
 #[test]
 fn test_file_exists() {
   setup_test_server(create_test_server);
-  let request = b"GET /HTTPageboy.svg HTTP/1.1\r\nHost: localhost\r\n\r\n";
+  let request = b"GET /numano.png HTTP/1.1\r\nHost: localhost\r\n\r\n";
   let expected_response = b"HTTP/1.1 200 OK";
   run_test(request, expected_response);
 }
@@ -168,7 +168,7 @@ fn test_file_exists() {
 #[test]
 fn test_file_not_found() {
   setup_test_server(create_test_server);
-  let request = b"GET /no_file_here.png HTTP/1.1\r\n\r\n";
+  let request = b"GET /test.png HTTP/1.1\r\n\r\n";
   let expected_response = b"HTTP/1.1 404 Not Found";
   run_test(request, expected_response);
 }
