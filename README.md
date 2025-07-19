@@ -42,7 +42,7 @@ fn demo_get(_request: &Request) -> Response {
 
 For synchronous tests:
 ```bash
-cargo test --features sync
+cargo test --features sync --test test_sync
 ```
 
 For asynchronous tests:
