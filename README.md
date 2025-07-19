@@ -8,6 +8,8 @@ Aspires to become runtime-agnostic, with minimal, solid, and flexible dependenci
 
 The core logic resides in `src/lib.rs`.
 
+See it working out of the box on [this video](https://www.youtube.com/watch?v=VwRYWJ33C4o)
+
 The following example is executable. Run `cargo run` to see the available variants and navigate to [http://127.0.0.1:7878](http://127.0.0.1:7878) in your browser.
 
 A basic server setup:
