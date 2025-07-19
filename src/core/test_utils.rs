@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Once;
+#[allow(unused_imports)]
 use std::thread;
 use std::time::Duration;
 
@@ -87,7 +88,8 @@ where
     smol::spawn(async move {
       let server = server_factory().await;
       server.run().await;
-    });
+    })
+    .detach();
   });
   // Timer de smol para dar tiempo a bind()
   smol::Timer::after(INTERVAL).await;

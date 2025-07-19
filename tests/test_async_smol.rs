@@ -1,6 +1,6 @@
 #![cfg(feature = "async_smol")]
 
-use httpageboy::test_utils::{run_test, setup_test_server, POOL_SIZE, SERVER_URL};
+use httpageboy::test_utils::{run_test, setup_test_server, SERVER_URL};
 use httpageboy::Server;
 use httpageboy::{Request, Response, Rt, StatusCode};
 use std::collections::BTreeMap;
