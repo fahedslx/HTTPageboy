@@ -53,3 +53,27 @@ pub use runtime::r#async::smol::Server;
   feature = "async_std"
 ))]
 pub use runtime::r#async::async_std::Server;
+
+// If no feature is active, export DummyServer
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  not(feature = "async_smol"),
+  not(feature = "async_std")
+))]
+pub struct Server;
+
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  not(feature = "async_smol"),
+  not(feature = "async_std")
+))]
+impl Server {
+  pub fn new() -> Self {
+    eprintln!(
+      "\n❌ No feature is active.\n\nActivate a feature when compiling:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
+    );
+    panic!("No feature selected.");
+  }
+}

@@ -1,8 +1,21 @@
 use httpageboy::Server;
-#[allow(unused_imports)]
-use httpageboy::{Request, Response, Rt, StatusCode};
+
+#[cfg(feature = "sync")]
+use httpageboy::{Request, Response, Rt, Server, StatusCode};
+
+#[cfg(all(
+  not(feature = "sync"),
+  any(feature = "async_tokio", feature = "async_std", feature = "async_smol")
+))]
+use httpageboy::{Request, Response, Server, StatusCode};
 
 // ROUTE HANDLER
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
 fn demo_get(_request: &Request) -> Response {
   Response {
     status: StatusCode::Ok.to_string(),
@@ -28,7 +41,6 @@ fn main() {
 }
 
 // ASYNC TOKIO
-
 #[cfg(all(not(feature = "sync"), feature = "async_tokio"))]
 #[tokio::main]
 async fn main() {
@@ -78,7 +90,7 @@ async fn run_smol() {
   server.run().await;
 }
 
-// NO FEATURES
+// DEFAULT (NO FEATURES)
 #[cfg(all(
   not(feature = "sync"),
   not(feature = "async_tokio"),
@@ -87,11 +99,6 @@ async fn run_smol() {
 ))]
 fn main() {
   eprintln!(
-    "\n🚨 Debes elegir una feature de runtime al compilar.\n\
-    Usa por ejemplo:\n\
-    cargo run --features sync\n\
-    cargo run --features async_tokio\n\
-    cargo run --features async_std\n\
-    cargo run --features async_smol\n"
+    "\n❌ No feature seleccionada.\n\nActiva una feature con:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
   );
 }
