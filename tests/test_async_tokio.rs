@@ -76,6 +76,7 @@ async fn test_home() {
   setup_test_server(|| create_test_server()).await;
   let request = b"GET / HTTP/1.1\r\n\r\n";
   let expected = b"home";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -84,6 +85,7 @@ async fn test_get() {
   setup_test_server(|| create_test_server()).await;
   let request = b"GET /test HTTP/1.1\r\n\r\n";
   let expected = b"get";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -92,6 +94,7 @@ async fn test_get_with_query() {
   setup_test_server(|| create_test_server()).await;
   let request = b"GET /test?foo=bar&baz=qux HTTP/1.1\r\n\r\n";
   let expected = b"get";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -100,6 +103,7 @@ async fn test_post() {
   setup_test_server(|| create_test_server()).await;
   let request = b"POST /test HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected = b"Method: POST\nUri: /test\nParams: {}\nBody: \"mueve tu cuerpo\"";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -108,6 +112,7 @@ async fn test_post_with_query() {
   setup_test_server(|| create_test_server()).await;
   let request = b"POST /test?foo=bar HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected = b"Method: POST\nUri: /test\nParams: {\"foo\": \"bar\"}\nBody: \"mueve tu cuerpo\"";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -116,6 +121,7 @@ async fn test_post_with_content_length() {
   setup_test_server(|| create_test_server()).await;
   let request = b"POST /test HTTP/1.1\r\nContent-Length: 15\r\n\r\nmueve tu cuerpo";
   let expected = b"Method: POST\nUri: /test\nParams: {}\nBody: \"mueve tu cuerpo\"";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -125,6 +131,7 @@ async fn test_post_with_params() {
   let request = b"POST /test/hola/que?param4=hoy&param3=hace HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected =
     b"Method: POST\nUri: /test/hola/que\nParams: {\"param1\": \"hola\", \"param2\": \"que\", \"param3\": \"hace\", \"param4\": \"hoy\"}\nBody: \"mueve tu cuerpo\"";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -133,6 +140,7 @@ async fn test_post_with_incomplete_path_params() {
   setup_test_server(|| create_test_server()).await;
   let request = b"POST /test/hola HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected = b"Method: POST\nUri: /test/hola\nParams: {\"param1\": \"hola\"}\nBody: \"mueve tu cuerpo\"";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -141,6 +149,7 @@ async fn test_put() {
   setup_test_server(|| create_test_server()).await;
   let request = b"PUT /test HTTP/1.1\r\n\r\nmueve tu cuerpo";
   let expected = b"Method: PUT\nUri: /test\nParams: {}\nBody: \"mueve tu cuerpo\"";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -149,6 +158,7 @@ async fn test_delete() {
   setup_test_server(|| create_test_server()).await;
   let request = b"DELETE /test HTTP/1.1\r\n\r\n";
   let expected = b"delete";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -157,6 +167,7 @@ async fn test_file_exists() {
   setup_test_server(|| create_test_server()).await;
   let request = b"GET /numano.png HTTP/1.1\r\nHost: localhost\r\n\r\n";
   let expected = b"HTTP/1.1 200 OK";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -165,6 +176,7 @@ async fn test_file_not_found() {
   setup_test_server(|| create_test_server()).await;
   let request = b"GET /no_file_here.png HTTP/1.1\r\n\r\n";
   let expected = b"HTTP/1.1 404 Not Found";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -173,6 +185,7 @@ async fn test_method_not_allowed() {
   setup_test_server(|| create_test_server()).await;
   let request = b"BREW /coffee HTTP/1.1\r\n\r\n";
   let expected = b"HTTP/1.1 405 Method Not Allowed";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -181,6 +194,7 @@ async fn test_empty_request() {
   setup_test_server(|| create_test_server()).await;
   let request = b"";
   let expected = b"HTTP/1.1 400 Bad Request";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -189,6 +203,7 @@ async fn test_malformed_request() {
   setup_test_server(|| create_test_server()).await;
   let request = b"THIS_IS_NOT_HTTP\r\n\r\n";
   let expected = b"HTTP/1.1 400 Bad Request";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -197,6 +212,7 @@ async fn test_unsupported_http_version() {
   setup_test_server(|| create_test_server()).await;
   let request = b"GET / HTTP/0.9\r\n\r\n";
   let expected = b"HTTP/1.1 505 HTTP Version Not Supported";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
 
@@ -214,5 +230,6 @@ async fn test_missing_method() {
   setup_test_server(|| create_test_server()).await;
   let request = b"/ HTTP/1.1\r\n\r\n";
   let expected = b"HTTP/1.1 400 Bad Request";
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   run_test(request, expected);
 }
