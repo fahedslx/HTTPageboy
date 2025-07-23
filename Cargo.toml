@@ -1,16 +1,16 @@
 [package]
 name = "httpageboy"
-version = "1.0.11"
+version = "1.0.12"
 edition = "2024"
 authors = ["fahedsl <fahedsl@yandex.com>"]
 description = "A lightweight library for handling raw HTTP request/response transmission. Good base for APIs. Supports both synchronous and asynchronous programming models."
 license = "MIT"
 repository = "https://gitlab.com/numanope/libs/rs/http-server"
+homepage = "https://gitlab.com/numanope/libs/rs/http-server"
+documentation = "https://docs.rs/httpageboy"
 readme = "README.md"
 keywords = ["http", "server", "request", "response"]
 categories = ["network-programming", "web-programming::http-server"]
-documentation = "https://docs.rs/httpageboy"
-homepage = "https://gitlab.com/numanope/libs/rs/http-server"
 
 [lib]
 path = "src/lib.rs"
