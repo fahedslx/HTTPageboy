@@ -121,7 +121,7 @@ pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {
 
   assert!(
     buffer_string.contains(&expected_response_string),
-    "ASSERT FAILED:\n\nRESPONSE: {} \nEXPECTED: {} \n\n",
+    "ASSERT FAILED:\n\nRECEIVED: {} \nEXPECTED: {} \n\n",
     buffer_string,
     expected_response_string
   );
