@@ -9,12 +9,6 @@ pub mod core {
   pub mod utils;
 }
 
-#[cfg(any(
-  feature = "sync",
-  feature = "async_tokio",
-  feature = "async_smol",
-  feature = "async_std"
-))]
 pub use core::handler::Handler;
 pub use core::request::{Request, handle_request};
 pub use core::request_handler::Rh;
