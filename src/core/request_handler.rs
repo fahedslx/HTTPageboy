@@ -10,9 +10,7 @@ pub struct RequestHandler {
 
 impl Clone for RequestHandler {
   fn clone(&self) -> Self {
-    RequestHandler {
-      handler: self.handler,
-    }
+    RequestHandler { handler: self.handler }
   }
 }
 

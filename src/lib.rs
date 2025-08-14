@@ -1,4 +1,5 @@
 pub mod core {
+  pub mod handler;
   pub mod request;
   pub mod request_handler;
   pub mod request_type;
@@ -8,14 +9,19 @@ pub mod core {
   pub mod utils;
 }
 
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_smol",
+  feature = "async_std"
+))]
+pub use core::handler::Handler;
 pub use core::request::{Request, handle_request};
 pub use core::request_handler::Rh;
 pub use core::request_type::Rt;
 pub use core::response::Response;
 pub use core::status_code::StatusCode;
 pub use core::test_utils;
-
-pub type Handler = fn(&Request) -> Response;
 
 pub mod runtime {
   #[cfg(feature = "sync")]
@@ -36,9 +42,6 @@ pub mod runtime {
 
   pub mod shared;
 }
-
-#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-pub type AsyncHandler = fn(&Request) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>;
 
 #[cfg(feature = "sync")]
 pub use runtime::sync::server::Server;
