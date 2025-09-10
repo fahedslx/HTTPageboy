@@ -1,3 +1,6 @@
+#[cfg(feature = "async_tokio")]
+use tokio::time::{Duration, sleep};
+
 #[cfg(any(
   feature = "sync",
   feature = "async_tokio",
@@ -7,13 +10,24 @@
 use httpageboy::{Request, Response, Rt, Server, StatusCode};
 
 // ROUTE HANDLER
-#[cfg(any(
-  feature = "sync",
-  feature = "async_tokio",
-  feature = "async_std",
-  feature = "async_smol"
-))]
+#[cfg(feature = "sync")]
 fn demo_get(_request: &Request) -> Response {
+  Response {
+    status: StatusCode::Ok.to_string(),
+    content_type: String::new(),
+    content: "<!DOCTYPE html><html><head>\
+<meta charset=\"utf-8\">\
+</head><body>🤓: Hi, this is Pageboy working.
+<br>Do you like the <a href=\"/HTTPageboy.svg\">new icon</a>?</body></html>"
+      .as_bytes()
+      .to_vec(),
+  }
+}
+
+#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+async fn demo_get(_request: &Request) -> Response {
+  sleep(Duration::from_millis(100)).await;
+
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
@@ -97,6 +111,6 @@ async fn run_smol() {
 ))]
 fn main() {
   eprintln!(
-    "\n❌ No feature selected. Select any of the following:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
+    "\n❌ No feature selected. Select any of the following:\n\n  cargo run --features sync\n  cargo run --features async_tokio\n  cargo run --features async_std\n  cargo run --features async_smol\n"
   );
 }

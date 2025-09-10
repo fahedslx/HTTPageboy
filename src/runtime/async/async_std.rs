@@ -5,7 +5,7 @@ use async_std::io::prelude::*;
 use async_std::net::{Shutdown, TcpListener, TcpStream};
 use async_std::task::spawn;
 
-use crate::core::request::{handle_request, Request};
+use crate::core::request::{Request, handle_request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
@@ -57,7 +57,7 @@ impl Server {
       let close_flag = self.auto_close;
 
       spawn(async move {
-        let (mut req, early) = Request::parse_stream_async(&mut stream, &routes, &files).await;
+        let (mut req, early) = Request::parse_stream(&mut stream, &routes, &files).await;
         let resp = early
           .or_else(|| handle_request(&mut req, &routes, &files))
           .unwrap_or_else(Response::new);
