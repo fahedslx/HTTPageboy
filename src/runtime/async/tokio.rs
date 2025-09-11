@@ -5,11 +5,11 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::core::handler::Handler;
-use crate::core::request::{Request, handle_request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
 use crate::runtime::shared::print_server_info;
+use crate::{Request, handle_request};
 
 pub struct Server {
   listener: TcpListener,
@@ -39,7 +39,7 @@ impl Server {
   pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
     Arc::get_mut(&mut self.routes)
       .unwrap()
-      .insert((rt, path.to_string()), Rh { handler });
+      .insert((rt, path.to_string()), Rh { handler: rh });
   }
 
   /// Add static files source
@@ -64,13 +64,9 @@ impl Server {
 
       tokio::spawn(async move {
         let (mut req, early) = Request::parse_stream(&mut stream, &routes, &sources).await;
-        let resp = if let Some(r) = early {
-          r
-        } else {
-          handle_request(&mut req, &routes, &sources)
-            .await
-            .unwrap_or_else(Response::new)
-        };
+        let resp = early
+          .or_else(|| handle_request(&mut req, &routes, &sources).await)
+          .unwrap_or_else(Response::new);
         send_response(&mut stream, &resp, close_flag).await;
       });
     }

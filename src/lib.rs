@@ -9,25 +9,21 @@ pub mod core {
   pub mod utils;
 }
 
+// Common re-exports (always available)
+pub use core::{request_type::Rt, response::Response, status_code::StatusCode, test_utils};
+
+// Feature-gated re-exports (exist only when any handler feature is enabled)
 #[cfg(any(
   feature = "sync",
   feature = "async_tokio",
   feature = "async_std",
   feature = "async_smol"
 ))]
-pub use core::handler::Handler;
-#[cfg(any(
-  feature = "sync",
-  feature = "async_tokio",
-  feature = "async_std",
-  feature = "async_smol"
-))]
-pub use core::request::{Request, handle_request};
-pub use core::request_handler::Rh;
-pub use core::request_type::Rt;
-pub use core::response::Response;
-pub use core::status_code::StatusCode;
-pub use core::test_utils;
+pub use core::{
+  handler::Handler,
+  request::{Request, handle_request},
+  request_handler::Rh,
+};
 
 pub mod runtime {
   #[cfg(feature = "sync")]
@@ -49,6 +45,7 @@ pub mod runtime {
   pub mod shared;
 }
 
+// Server export selection
 #[cfg(feature = "sync")]
 pub use runtime::sync::server::Server;
 
@@ -66,7 +63,7 @@ pub use runtime::r#async::smol::Server;
 ))]
 pub use runtime::r#async::async_std::Server;
 
-// If no feature is active, export DummyServer
+// Fallback dummy server if no feature is active
 #[cfg(all(
   not(feature = "sync"),
   not(feature = "async_tokio"),

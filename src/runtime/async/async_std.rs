@@ -5,11 +5,11 @@ use async_std::io::prelude::*;
 use async_std::net::{Shutdown, TcpListener, TcpStream};
 use async_std::task::spawn;
 
-use crate::core::request::{Request, handle_request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
 use crate::runtime::shared::print_server_info;
+use crate::{Request, handle_request};
 
 /// A non‑blocking HTTP server powered by async‑std.
 pub struct Server {
