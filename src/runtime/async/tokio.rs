@@ -1,3 +1,4 @@
+#![cfg(feature = "async_tokio")]
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -36,7 +37,7 @@ impl Server {
   }
 
   /// Add HTTP route
-  pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
+  pub fn add_route(&mut self, path: &str, rt: Rt, rh: Handler) {
     Arc::get_mut(&mut self.routes)
       .unwrap()
       .insert((rt, path.to_string()), Rh { handler: rh });
@@ -64,9 +65,12 @@ impl Server {
 
       tokio::spawn(async move {
         let (mut req, early) = Request::parse_stream(&mut stream, &routes, &sources).await;
-        let resp = early
-          .or_else(|| handle_request(&mut req, &routes, &sources).await)
-          .unwrap_or_else(Response::new);
+        let resp = match early {
+          Some(r) => r,
+          None => handle_request(&mut req, &routes, &sources)
+            .await
+            .unwrap_or_else(Response::new),
+        };
         send_response(&mut stream, &resp, close_flag).await;
       });
     }
