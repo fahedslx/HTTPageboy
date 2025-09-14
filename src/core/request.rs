@@ -1,4 +1,16 @@
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
 use std::collections::{BTreeMap, HashMap};
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
 use std::path::Path;
 
 #[cfg(feature = "sync")]
@@ -554,6 +566,12 @@ impl Request {
   }
 }
 
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
 impl Default for Request {
   fn default() -> Self {
     Request {
@@ -567,8 +585,20 @@ impl Default for Request {
   }
 }
 
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
 use std::fmt::{Display, Formatter};
 
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
 impl Display for Request {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     let mut keys: Vec<&String> = self.params.keys().collect();
