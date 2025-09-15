@@ -18,10 +18,11 @@ path = "src/lib.rs"
 [features]
 sync = []
 async_tokio = ["tokio"]
-async_smol = ["smol", "futures-lite"]
+async_smol = ["smol"]
 async_std = ["async-std"]
 
 [dependencies]
+futures = "0.3"
 async-std = { version = "1", optional = true, features = ["attributes"] }
 async-trait = "0.1.89"
 futures-lite = { version = "1.8", optional = true }

@@ -5,6 +5,20 @@
   feature = "async_smol"
 ))]
 use crate::{Request, Response};
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
+use futures::future::BoxFuture;
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
+use std::sync::Arc;
 
 #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
 use std::{future::Future, pin::Pin};
