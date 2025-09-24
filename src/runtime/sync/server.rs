@@ -1,7 +1,7 @@
 #![cfg(feature = "sync")]
 
 use crate::core::handler::Handler;
-use crate::core::request::{handle_request, Request};
+use crate::core::request::{handle_request_sync, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
@@ -73,11 +73,11 @@ impl Server {
           let pool = Arc::clone(&self.pool);
           pool.lock().unwrap().run(move || {
             let (mut request, early_resp) =
-              Request::parse_stream(&stream, &routes_local, &sources_local);
+              Request::parse_stream_sync(&stream, &routes_local, &sources_local);
             let answer = if let Some(resp) = early_resp {
               Some(resp)
             } else {
-              handle_request(&mut request, &routes_local, &sources_local)
+              handle_request_sync(&mut request, &routes_local, &sources_local)
             };
             match answer {
               Some(response) => Self::send_response(stream, &response, close_flag),

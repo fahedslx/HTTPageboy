@@ -86,7 +86,7 @@ impl Request {
   }
 
   #[cfg(feature = "sync")]
-  pub fn parse_stream(
+  pub fn parse_stream_sync(
     stream: &TcpStream,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -139,11 +139,11 @@ impl Request {
       raw.push_str(&rest);
     }
 
-    Self::parse_raw(raw, routes, file_bases)
+    Self::parse_raw_sync(raw, routes, file_bases)
   }
 
-  #[cfg(feature = "async_tokio")]
-  pub async fn parse_stream(
+#[cfg(feature = "async_tokio")]
+pub async fn parse_stream_tokio(
     stream: &mut TokioTcpStream,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -194,11 +194,11 @@ impl Request {
       raw.push_str(&rest);
     }
 
-    Self::parse_raw(raw, routes, file_bases).await
+    Self::parse_raw_async(raw, routes, file_bases).await
   }
 
-  #[cfg(feature = "async_std")]
-  pub async fn parse_stream(
+#[cfg(feature = "async_std")]
+pub async fn parse_stream_async_std(
     stream: &mut async_std::net::TcpStream,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -249,11 +249,11 @@ impl Request {
       raw.push_str(&rest);
     }
 
-    Self::parse_raw(raw, routes, file_bases).await
+    Self::parse_raw_async(raw, routes, file_bases).await
   }
 
-  #[cfg(feature = "async_smol")]
-  pub async fn parse_stream(
+#[cfg(feature = "async_smol")]
+pub async fn parse_stream_smol(
     stream: &mut smol::net::TcpStream,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -304,11 +304,11 @@ impl Request {
       raw.push_str(&rest);
     }
 
-    Self::parse_raw(raw, routes, file_bases).await
+    Self::parse_raw_async(raw, routes, file_bases).await
   }
 
   #[cfg(feature = "sync")]
-  pub fn parse_raw(
+  pub fn parse_raw_sync(
     raw: String,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -370,12 +370,12 @@ impl Request {
       );
     }
     let mut req = Self::parse_raw_only(raw, routes);
-    let early = req.route(routes, file_bases);
+    let early = req.route_sync(routes, file_bases);
     (req, early)
   }
 
-  #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-  pub async fn parse_raw(
+#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+  pub async fn parse_raw_async(
     raw: String,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -438,7 +438,7 @@ impl Request {
     }
     let mut req = Self::parse_raw_only(raw, routes);
     // route is async under these features, await it here
-    let early = req.route(routes, file_bases).await;
+    let early = req.route_async(routes, file_bases).await;
     (req, early)
   }
 
@@ -495,7 +495,7 @@ impl Request {
   }
 
   #[cfg(feature = "sync")]
-  pub fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
+  pub fn route_sync(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
       return Some(futures::executor::block_on(rh.handler.handle(self)));
     }
@@ -521,8 +521,8 @@ impl Request {
     None
   }
 
-  #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-  pub async fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
+#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+  pub async fn route_async(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
       return Some(rh.handler.handle(self).await);
     }
@@ -623,19 +623,19 @@ impl Display for Request {
 }
 
 #[cfg(feature = "sync")]
-pub fn handle_request(
+pub fn handle_request_sync(
   req: &mut Request,
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  req.route(routes, file_bases)
+  req.route_sync(routes, file_bases)
 }
 
 #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-pub async fn handle_request(
+pub async fn handle_request_async(
   req: &mut Request,
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  req.route(routes, file_bases).await
+  req.route_async(routes, file_bases).await
 }

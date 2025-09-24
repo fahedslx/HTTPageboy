@@ -1,5 +1,9 @@
 #[cfg(feature = "async_tokio")]
-use tokio::time::{Duration, sleep};
+use tokio::time::{sleep, Duration};
+#[cfg(feature = "async_std")]
+use {async_std::task::sleep, std::time::Duration};
+#[cfg(feature = "async_smol")]
+use {smol::Timer as SmolTimer, std::time::Duration};
 
 #[cfg(any(
   feature = "sync",
@@ -26,7 +30,12 @@ fn demo_get(_request: &Request) -> Response {
 
 #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
 async fn demo_get(_request: &Request) -> Response {
+  #[cfg(feature = "async_tokio")]
   sleep(Duration::from_millis(100)).await;
+  #[cfg(feature = "async_std")]
+  sleep(Duration::from_millis(100)).await;
+  #[cfg(feature = "async_smol")]
+  SmolTimer::after(Duration::from_millis(100)).await;
 
   Response {
     status: StatusCode::Ok.to_string(),

@@ -1,14 +1,31 @@
 use crate::core::handler::Handler;
-use crate::core::request::{handle_request, Request};
+use crate::core::request::{handle_request_async, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
 use crate::runtime::shared::print_server_info;
-use futures_lite::io::AsyncWriteExt;
+use crate::runtime::r#async::shared::{send_response, AsyncStream};
+use async_trait::async_trait;
+use smol::io::AsyncWriteExt;
 use smol::net::{TcpListener, TcpStream};
 use smol::spawn;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+#[async_trait]
+impl AsyncStream for TcpStream {
+    async fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        AsyncWriteExt::write_all(self, buf).await
+    }
+
+    async fn flush(&mut self) -> std::io::Result<()> {
+        AsyncWriteExt::flush(self).await
+    }
+
+    async fn shutdown(&mut self) -> std::io::Result<()> {
+        AsyncWriteExt::close(self).await
+    }
+}
 
 /// A non‑blocking HTTP server powered by Smol + async-net.
 pub struct Server {
@@ -63,38 +80,16 @@ impl Server {
       let close_flag = self.auto_close;
 
       spawn(async move {
-        let (mut req, early) = Request::parse_stream(&mut stream, &routes, &files).await;
-        let resp = early
-          .or_else(|| handle_request(&mut req, &routes, &files).await)
-          .unwrap_or_else(Response::new);
+        let (mut req, early) = Request::parse_stream_smol(&mut stream, &routes, &files).await;
+        let resp = match early {
+          Some(r) => r,
+          None => handle_request_async(&mut req, &routes, &files)
+            .await
+            .unwrap_or_else(Response::new),
+        };
         send_response(&mut stream, &resp, close_flag).await;
       })
       .detach();
     }
-  }
-}
-
-async fn send_response(stream: &mut TcpStream, resp: &Response, close: bool) {
-  let conn_hdr = if close { "Connection: close\r\n" } else { "" };
-  let header = format!(
-    "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}\
-\r\n",
-    resp.status,
-    resp.content_type,
-    resp.content.len(),
-    conn_hdr,
-  );
-
-  let _ = stream.write_all(header.as_bytes()).await;
-  if resp.content_type.starts_with("image/") {
-    let _ = stream.write_all(&resp.content).await;
-  } else {
-    let text = String::from_utf8_lossy(&resp.content);
-    let _ = stream.write_all(text.as_bytes()).await;
-  }
-  let _ = stream.flush().await;
-
-  if close {
-    let _ = stream.close().await;
   }
 }

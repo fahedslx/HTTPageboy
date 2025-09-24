@@ -1,14 +1,31 @@
 #![cfg(feature = "async_tokio")]
 use crate::core::handler::Handler;
-use crate::core::request::{handle_request, Request};
+use crate::core::request::{handle_request_async, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
 use crate::runtime::shared::print_server_info;
+use crate::runtime::r#async::shared::{send_response, AsyncStream};
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
+
+#[async_trait]
+impl AsyncStream for TcpStream {
+    async fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        AsyncWriteExt::write_all(self, buf).await
+    }
+
+    async fn flush(&mut self) -> std::io::Result<()> {
+        AsyncWriteExt::flush(self).await
+    }
+
+    async fn shutdown(&mut self) -> std::io::Result<()> {
+        AsyncWriteExt::shutdown(self).await
+    }
+}
 
 pub struct Server {
   listener: TcpListener,
@@ -66,39 +83,15 @@ impl Server {
 
       tokio::spawn(async move {
         let (mut req, early) =
-          Request::parse_stream(&mut stream, &routes, &sources).await;
+          Request::parse_stream_tokio(&mut stream, &routes, &sources).await;
         let resp = match early {
           Some(r) => r,
-          None => handle_request(&mut req, &routes, &sources)
+          None => handle_request_async(&mut req, &routes, &sources)
             .await
             .unwrap_or_else(Response::new),
         };
         send_response(&mut stream, &resp, close_flag).await;
       });
     }
-  }
-}
-
-/// Send response to client
-async fn send_response(stream: &mut TcpStream, resp: &Response, close: bool) {
-  let conn_hdr = if close { "Connection: close\r\n" } else { "" };
-  let head = format!(
-    "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}\
-\r\n",
-    resp.status,
-    resp.content_type,
-    resp.content.len(),
-    conn_hdr,
-  );
-  let _ = stream.write_all(head.as_bytes()).await;
-  if resp.content_type.starts_with("image/") {
-    let _ = stream.write_all(&resp.content).await;
-  } else {
-    let text = String::from_utf8_lossy(&resp.content);
-    let _ = stream.write_all(text.as_bytes()).await;
-  }
-  let _ = stream.flush().await;
-  if close {
-    let _ = stream.shutdown().await;
   }
 }

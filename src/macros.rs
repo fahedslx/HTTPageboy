@@ -18,7 +18,10 @@ macro_rules! handler {
 /// future. This hides the necessary boilerplate from the user, providing
 /// a clean API.
 #[macro_export]
-#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+#[cfg(all(
+  any(feature = "async_tokio", feature = "async_std", feature = "async_smol"),
+  not(feature = "sync")
+))]
 macro_rules! handler {
     ($handler_fn:expr) => {
         $crate::core::handler::async_h(move |req| Box::pin($handler_fn(req)))

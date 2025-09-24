@@ -14,13 +14,19 @@ use std::time::Duration;
 #[cfg(feature = "sync")]
 use crate::runtime::sync::server::Server;
 
-#[cfg(feature = "async_tokio")]
+#[cfg(all(feature = "async_tokio", not(feature = "sync")))]
 use crate::runtime::r#async::tokio::Server;
 
-#[cfg(feature = "async_smol")]
+#[cfg(all(
+  feature = "async_smol",
+  not(any(feature = "sync", feature = "async_tokio"))
+))]
 use crate::runtime::r#async::smol::Server;
 
-#[cfg(feature = "async_std")]
+#[cfg(all(
+  feature = "async_std",
+  not(any(feature = "sync", feature = "async_tokio", feature = "async_smol"))
+))]
 use crate::runtime::r#async::async_std::Server;
 
 pub const SERVER_URL: &str = "127.0.0.1:7878";
@@ -49,7 +55,7 @@ where
 }
 
 // async_tokio
-#[cfg(feature = "async_tokio")]
+#[cfg(all(feature = "async_tokio", not(feature = "sync")))]
 pub async fn setup_test_server<F, Fut>(server_factory: F)
 where
   F: FnOnce() -> Fut + Send + 'static,
@@ -72,7 +78,10 @@ where
 }
 
 // async_std
-#[cfg(feature = "async_std")]
+#[cfg(all(
+  feature = "async_std",
+  not(any(feature = "sync", feature = "async_tokio"))
+))]
 pub async fn setup_test_server<F, Fut>(server_factory: F)
 where
   F: FnOnce() -> Fut + Send + 'static,
@@ -90,21 +99,24 @@ where
   });
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(all(
+  feature = "async_smol",
+  not(any(feature = "sync", feature = "async_tokio", feature = "async_std"))
+))]
 pub async fn setup_test_server<F, Fut>(server_factory: F)
 where
   F: FnOnce() -> Fut + Send + 'static,
   Fut: std::future::Future<Output = Server> + Send + 'static,
 {
   INIT.call_once(|| {
-    smol::spawn(async move {
-      let server = server_factory().await;
-      server.run().await;
-    })
-    .detach();
+    thread::spawn(move || {
+      smol::block_on(async move {
+        let server = server_factory().await;
+        server.run().await;
+      });
+    });
+    thread::sleep(INTERVAL);
   });
-  // Timer de smol para dar tiempo a bind()
-  smol::Timer::after(INTERVAL).await;
 }
 
 pub fn run_test(request: &[u8], expected_response: &[u8]) -> String {

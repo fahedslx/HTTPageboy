@@ -13,7 +13,7 @@ pub use crate::core::{request_type::Rt, response::Response, status_code::StatusC
 ))]
 pub use crate::core::{
   handler::Handler,
-  request::{handle_request, Request},
+  request::Request,
   request_handler::Rh,
 };
 
@@ -32,6 +32,7 @@ pub mod runtime {
     pub mod smol;
     #[cfg(feature = "async_tokio")]
     pub mod tokio;
+    pub mod shared;
   }
 
   pub mod shared;
