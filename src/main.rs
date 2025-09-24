@@ -7,7 +7,7 @@ use tokio::time::{Duration, sleep};
   feature = "async_std",
   feature = "async_smol"
 ))]
-use httpageboy::{Request, Response, Rt, Server, StatusCode};
+use httpageboy::{handler, Request, Response, Rt, Server, StatusCode};
 
 // ROUTE HANDLER
 #[cfg(feature = "sync")]
@@ -47,7 +47,7 @@ fn main() {
   let threads_number: u8 = 10;
 
   let mut server = Server::new(serving_url, threads_number, None).unwrap();
-  server.add_route("/", Rt::GET, demo_get);
+  server.add_route("/", Rt::GET, handler!(demo_get));
   server.add_files_source("res");
   server.run();
 }
@@ -59,7 +59,7 @@ async fn main() {
   let serving_url: &str = "127.0.0.1:7878";
 
   let mut server = Server::new(serving_url, None).await.unwrap();
-  server.add_route("/", Rt::GET, demo_get);
+  server.add_route("/", Rt::GET, handler!(demo_get));
   server.add_files_source("res");
   server.run().await;
 }
@@ -71,7 +71,7 @@ async fn main() {
   let serving_url: &str = "127.0.0.1:7878";
 
   let mut server = Server::new(serving_url, None).await.unwrap();
-  server.add_route("/", Rt::GET, demo_get);
+  server.add_route("/", Rt::GET, handler!(demo_get));
   server.add_files_source("res");
   server.run().await;
 }
@@ -97,7 +97,7 @@ async fn run_smol() {
   let serving_url: &str = "127.0.0.1:7878";
 
   let mut server = Server::new(serving_url, None).await.unwrap();
-  server.add_route("/", Rt::GET, demo_get);
+  server.add_route("/", Rt::GET, handler!(demo_get));
   server.add_files_source("res");
   server.run().await;
 }

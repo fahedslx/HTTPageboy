@@ -1,16 +1,8 @@
-pub mod core {
-  pub mod handler;
-  pub mod request;
-  pub mod request_handler;
-  pub mod request_type;
-  pub mod response;
-  pub mod status_code;
-  pub mod test_utils;
-  pub mod utils;
-}
+pub mod core;
+pub mod macros;
 
 // Common re-exports (always available)
-pub use core::{request_type::Rt, response::Response, status_code::StatusCode, test_utils};
+pub use crate::core::{request_type::Rt, response::Response, status_code::StatusCode, test_utils};
 
 // Feature-gated re-exports (exist only when any handler feature is enabled)
 #[cfg(any(
@@ -19,9 +11,9 @@ pub use core::{request_type::Rt, response::Response, status_code::StatusCode, te
   feature = "async_std",
   feature = "async_smol"
 ))]
-pub use core::{
+pub use crate::core::{
   handler::Handler,
-  request::{Request, handle_request},
+  request::{handle_request, Request},
   request_handler::Rh,
 };
 
