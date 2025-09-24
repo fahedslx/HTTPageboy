@@ -1,15 +1,14 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use async_std::io::prelude::*;
-use async_std::net::{Shutdown, TcpListener, TcpStream};
-use async_std::task::spawn;
-
+use crate::core::handler::Handler;
+use crate::core::request::{handle_request, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
 use crate::runtime::shared::print_server_info;
-use crate::{Request, handle_request};
+use async_std::io::prelude::*;
+use async_std::net::{Shutdown, TcpListener, TcpStream};
+use async_std::task::spawn;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// A non‑blocking HTTP server powered by async‑std.
 pub struct Server {
@@ -21,7 +20,10 @@ pub struct Server {
 
 impl Server {
   /// Bind to `serving_url` and prepare route map.
-  pub async fn new(serving_url: &str, routes_list: Option<HashMap<(Rt, String), Rh>>) -> std::io::Result<Self> {
+  pub async fn new(
+    serving_url: &str,
+    routes_list: Option<HashMap<(Rt, String), Rh>>,
+  ) -> std::io::Result<Self> {
     let listener = TcpListener::bind(serving_url).await?;
     Ok(Self {
       listener,
@@ -37,7 +39,7 @@ impl Server {
   }
 
   /// Add a handler for `method` + `path`.
-  pub fn add_route(&mut self, path: &str, method: Rt, handler: fn(&Request) -> Response) {
+  pub fn add_route(&mut self, path: &str, method: Rt, handler: Arc<dyn Handler>) {
     Arc::get_mut(&mut self.routes)
       .unwrap()
       .insert((method, path.to_string()), Rh { handler });
@@ -59,7 +61,7 @@ impl Server {
       spawn(async move {
         let (mut req, early) = Request::parse_stream(&mut stream, &routes, &files).await;
         let resp = early
-          .or_else(|| handle_request(&mut req, &routes, &files))
+          .or_else(|| handle_request(&mut req, &routes, &files).await)
           .unwrap_or_else(Response::new);
         send_response(&mut stream, &resp, close_flag).await;
       });

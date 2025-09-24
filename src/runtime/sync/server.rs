@@ -1,17 +1,18 @@
 #![cfg(feature = "sync")]
 
+use crate::core::handler::Handler;
+use crate::core::request::{handle_request, Request};
+use crate::core::request_handler::Rh;
+use crate::core::request_type::Rt;
+use crate::core::response::Response;
+use crate::runtime::shared::print_server_info;
+use crate::runtime::sync::threadpool::ThreadPool;
 use std::collections::HashMap;
 use std::io::prelude::Write;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-
-use crate::core::request::{handle_request, Request};
-pub use crate::core::request_handler::Rh;
-pub use crate::core::request_type::Rt;
-use crate::core::response::Response;
-use crate::runtime::shared::print_server_info;
-pub use crate::runtime::sync::threadpool::ThreadPool;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 pub struct Server {
   listener: TcpListener,
@@ -44,10 +45,9 @@ impl Server {
     self.auto_close = state;
   }
 
-  pub fn add_route(&mut self, path: &str, rt: Rt, rh: fn(&Request) -> Response) {
+  pub fn add_route(&mut self, path: &str, rt: Rt, handler: Arc<dyn Handler>) {
     let key = (rt, path.to_string());
-    let handler = Rh { handler: rh };
-    self.routes.insert(key, handler);
+    self.routes.insert(key, Rh { handler });
   }
 
   pub fn add_files_source<S>(&mut self, base: S)
@@ -72,7 +72,8 @@ impl Server {
           let close_flag = self.auto_close;
           let pool = Arc::clone(&self.pool);
           pool.lock().unwrap().run(move || {
-            let (mut request, early_resp) = Request::parse_stream(&stream, &routes_local, &sources_local);
+            let (mut request, early_resp) =
+              Request::parse_stream(&stream, &routes_local, &sources_local);
             let answer = if let Some(resp) = early_resp {
               Some(resp)
             } else {
@@ -85,7 +86,7 @@ impl Server {
           });
         }
         Err(_err) => {
-          // podrías loguear el error aquí
+          // could log error here
         }
       }
     }

@@ -1,16 +1,14 @@
 #![cfg(feature = "async_tokio")]
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use tokio::io::AsyncWriteExt;
-use tokio::net::{TcpListener, TcpStream};
-
 use crate::core::handler::Handler;
+use crate::core::request::{handle_request, Request};
 use crate::core::request_handler::Rh;
 use crate::core::request_type::Rt;
 use crate::core::response::Response;
 use crate::runtime::shared::print_server_info;
-use crate::{Request, handle_request};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::io::AsyncWriteExt;
+use tokio::net::{TcpListener, TcpStream};
 
 pub struct Server {
   listener: TcpListener,
@@ -21,7 +19,10 @@ pub struct Server {
 
 impl Server {
   /// Create a new server and bind the url
-  pub async fn new(serving_url: &str, routes_list: Option<HashMap<(Rt, String), Rh>>) -> std::io::Result<Server> {
+  pub async fn new(
+    serving_url: &str,
+    routes_list: Option<HashMap<(Rt, String), Rh>>,
+  ) -> std::io::Result<Server> {
     let listener = TcpListener::bind(serving_url).await?;
     Ok(Server {
       listener,
@@ -37,10 +38,10 @@ impl Server {
   }
 
   /// Add HTTP route
-  pub fn add_route(&mut self, path: &str, rt: Rt, rh: Handler) {
+  pub fn add_route(&mut self, path: &str, rt: Rt, handler: Arc<dyn Handler>) {
     Arc::get_mut(&mut self.routes)
       .unwrap()
-      .insert((rt, path.to_string()), Rh { handler: rh });
+      .insert((rt, path.to_string()), Rh { handler });
   }
 
   /// Add static files source
@@ -64,7 +65,8 @@ impl Server {
       let close_flag = self.auto_close;
 
       tokio::spawn(async move {
-        let (mut req, early) = Request::parse_stream(&mut stream, &routes, &sources).await;
+        let (mut req, early) =
+          Request::parse_stream(&mut stream, &routes, &sources).await;
         let resp = match early {
           Some(r) => r,
           None => handle_request(&mut req, &routes, &sources)

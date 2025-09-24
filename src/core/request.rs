@@ -4,27 +4,6 @@
   feature = "async_std",
   feature = "async_smol"
 ))]
-use std::collections::{BTreeMap, HashMap};
-#[cfg(any(
-  feature = "sync",
-  feature = "async_tokio",
-  feature = "async_std",
-  feature = "async_smol"
-))]
-use std::path::Path;
-
-#[cfg(feature = "sync")]
-use std::net::TcpStream;
-
-#[cfg(feature = "async_tokio")]
-use tokio::net::TcpStream as TokioTcpStream;
-
-#[cfg(any(
-  feature = "sync",
-  feature = "async_tokio",
-  feature = "async_std",
-  feature = "async_smol"
-))]
 use crate::core::request_handler::Rh;
 #[cfg(any(
   feature = "sync",
@@ -47,6 +26,24 @@ use crate::core::response::Response;
   feature = "async_smol"
 ))]
 use crate::core::status_code::StatusCode;
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
+use std::collections::{BTreeMap, HashMap};
+#[cfg(any(
+  feature = "sync",
+  feature = "async_tokio",
+  feature = "async_std",
+  feature = "async_smol"
+))]
+use std::path::Path;
+#[cfg(feature = "sync")]
+use std::net::TcpStream;
+#[cfg(feature = "async_tokio")]
+use tokio::net::TcpStream as TokioTcpStream;
 
 #[cfg(any(
   feature = "sync",
@@ -311,7 +308,11 @@ impl Request {
   }
 
   #[cfg(feature = "sync")]
-  pub fn parse_raw(raw: String, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> (Self, Option<Response>) {
+  pub fn parse_raw(
+    raw: String,
+    routes: &HashMap<(Rt, String), Rh>,
+    file_bases: &[String],
+  ) -> (Self, Option<Response>) {
     if raw.trim().is_empty() {
       return (
         Self::default(),
@@ -496,7 +497,7 @@ impl Request {
   #[cfg(feature = "sync")]
   pub fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
-      return Some((rh.handler)(self));
+      return Some(futures::executor::block_on(rh.handler.handle(self)));
     }
     for ((m, rp), rh) in routes {
       if *m == self.method {
@@ -510,7 +511,7 @@ impl Request {
             merged.insert(k, v);
           }
           self.params = merged;
-          return Some((rh.handler)(self));
+          return Some(futures::executor::block_on(rh.handler.handle(self)));
         }
       }
     }
@@ -523,8 +524,7 @@ impl Request {
   #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
   pub async fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
-      let fut = (rh.handler)(self);
-      return Some(fut.await);
+      return Some(rh.handler.handle(self).await);
     }
     for ((m, rp), rh) in routes {
       if *m == self.method {
@@ -538,8 +538,7 @@ impl Request {
             merged.insert(k, v);
           }
           self.params = merged;
-          let fut = (rh.handler)(self);
-          return Some(fut.await);
+          return Some(rh.handler.handle(self).await);
         }
       }
     }

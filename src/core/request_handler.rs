@@ -6,14 +6,16 @@
 ))]
 mod request_handler_enabled {
   use crate::core::handler::Handler;
+  use std::sync::Arc;
 
   pub type Rh = RequestHandler;
 
+  /// A wrapper for a route handler.
+  /// It stores the handler as a type-erased, shareable trait object.
   pub struct RequestHandler {
-    pub handler: Handler,
+    pub handler: Arc<dyn Handler>,
   }
 
-  #[allow(clippy::derivable_impls)]
   impl Clone for RequestHandler {
     fn clone(&self) -> Self {
       RequestHandler {
@@ -24,7 +26,9 @@ mod request_handler_enabled {
 
   impl std::fmt::Debug for RequestHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      f.debug_struct("RequestHandler").finish()
+      f.debug_struct("RequestHandler")
+        .field("handler", &"Arc<dyn Handler>")
+        .finish()
     }
   }
 }
