@@ -1,5 +1,6 @@
-pub mod core;
+#[macro_use]
 pub mod macros;
+pub mod core;
 
 // Common re-exports (always available)
 pub use crate::core::{request_type::Rt, response::Response, status_code::StatusCode, test_utils};
