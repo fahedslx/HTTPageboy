@@ -1,4 +1,4 @@
-use crate::core::request::{handle_request_async, Request};
+use crate::core::request::handle_request_async;
 use crate::core::request_handler::Rh;
 use crate::core::response::Response;
 use crate::runtime::r#async::shared;
