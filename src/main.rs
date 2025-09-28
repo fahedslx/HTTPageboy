@@ -120,6 +120,6 @@ async fn run_smol() {
 ))]
 fn main() {
   eprintln!(
-    "\n❌ No feature selected. Select any of the following:\n\n  cargo run --features sync\n  cargo run --features async_tokio\n  cargo run --features async_std\n  cargo run --features async_smol\n"
+    "\n❌ No feature is active.\n\nActivate a feature when compiling:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
   );
 }
