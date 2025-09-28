@@ -42,8 +42,33 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 #[cfg(feature = "sync")]
 use std::net::TcpStream;
-#[cfg(feature = "async_tokio")]
-use tokio::net::TcpStream as TokioTcpStream;
+
+create_async_parse_stream!(
+    #[cfg(feature = "async_tokio")]
+    parse_stream_tokio,
+    tokio::net::TcpStream,
+    tokio::io::BufReader<_>,
+    tokio::io::AsyncReadExt,
+    tokio::io::AsyncBufReadExt
+);
+
+create_async_parse_stream!(
+    #[cfg(feature = "async_std")]
+    parse_stream_async_std,
+    async_std::net::TcpStream,
+    async_std::io::BufReader<_>,
+    async_std::io::ReadExt,
+    async_std::io::BufReadExt
+);
+
+create_async_parse_stream!(
+    #[cfg(feature = "async_smol")]
+    parse_stream_smol,
+    smol::net::TcpStream,
+    futures_lite::io::BufReader<_>,
+    futures_lite::io::AsyncReadExt,
+    futures_lite::io::AsyncBufReadExt
+);
 
 #[cfg(any(
   feature = "sync",
@@ -86,7 +111,7 @@ impl Request {
   }
 
   #[cfg(feature = "sync")]
-  pub fn parse_stream(
+  pub fn parse_stream_sync(
     stream: &TcpStream,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -139,176 +164,11 @@ impl Request {
       raw.push_str(&rest);
     }
 
-    Self::parse_raw(raw, routes, file_bases)
-  }
-
-  #[cfg(feature = "async_tokio")]
-  pub async fn parse_stream(
-    stream: &mut TokioTcpStream,
-    routes: &HashMap<(Rt, String), Rh>,
-    file_bases: &[String],
-  ) -> (Self, Option<Response>) {
-    use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
-
-    let mut reader = BufReader::new(stream);
-    let mut raw = String::new();
-
-    // Leer solo headers
-    loop {
-      let mut line = String::new();
-      if reader.read_line(&mut line).await.ok().filter(|&n| n > 0).is_none() {
-        break;
-      }
-      raw.push_str(&line);
-      if raw.contains("\r\n\r\n") {
-        break;
-      }
-    }
-
-    // Extraer método
-    let method = raw
-      .lines()
-      .next()
-      .and_then(|l| l.split_whitespace().next())
-      .unwrap_or("");
-
-    // Determinar longitud
-    let content_length = raw
-      .lines()
-      .find_map(|l| {
-        if l.to_ascii_lowercase().starts_with("content-length:") {
-          l.split(':').nth(1)?.trim().parse::<usize>().ok()
-        } else {
-          None
-        }
-      })
-      .unwrap_or(0);
-
-    if content_length > 0 {
-      let mut buf = vec![0; content_length];
-      let _ = reader.read_exact(&mut buf).await;
-      raw.push_str(&String::from_utf8_lossy(&buf));
-    } else if method != "GET" {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest).await;
-      raw.push_str(&rest);
-    }
-
-    Self::parse_raw(raw, routes, file_bases).await
-  }
-
-  #[cfg(feature = "async_std")]
-  pub async fn parse_stream(
-    stream: &mut async_std::net::TcpStream,
-    routes: &HashMap<(Rt, String), Rh>,
-    file_bases: &[String],
-  ) -> (Self, Option<Response>) {
-    use async_std::io::{BufReadExt, BufReader, ReadExt};
-
-    let mut reader = BufReader::new(stream);
-    let mut raw = String::new();
-
-    // Leer solo headers
-    loop {
-      let mut line = String::new();
-      if reader.read_line(&mut line).await.ok().filter(|&n| n > 0).is_none() {
-        break;
-      }
-      raw.push_str(&line);
-      if raw.contains("\r\n\r\n") {
-        break;
-      }
-    }
-
-    // Extraer método
-    let method = raw
-      .lines()
-      .next()
-      .and_then(|l| l.split_whitespace().next())
-      .unwrap_or("");
-
-    // Determinar longitud
-    let content_length = raw
-      .lines()
-      .find_map(|l| {
-        if l.to_lowercase().starts_with("content-length:") {
-          l.split(':').nth(1)?.trim().parse::<usize>().ok()
-        } else {
-          None
-        }
-      })
-      .unwrap_or(0);
-
-    if content_length > 0 {
-      let mut buf = vec![0; content_length];
-      let _ = reader.read_exact(&mut buf).await;
-      raw.push_str(&String::from_utf8_lossy(&buf));
-    } else if method != "GET" {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest).await;
-      raw.push_str(&rest);
-    }
-
-    Self::parse_raw(raw, routes, file_bases).await
-  }
-
-  #[cfg(feature = "async_smol")]
-  pub async fn parse_stream(
-    stream: &mut smol::net::TcpStream,
-    routes: &HashMap<(Rt, String), Rh>,
-    file_bases: &[String],
-  ) -> (Self, Option<Response>) {
-    use futures_lite::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
-
-    let mut reader = BufReader::new(stream);
-    let mut raw = String::new();
-
-    // Leer solo headers
-    loop {
-      let mut line = String::new();
-      if reader.read_line(&mut line).await.ok().filter(|&n| n > 0).is_none() {
-        break;
-      }
-      raw.push_str(&line);
-      if raw.contains("\r\n\r\n") {
-        break;
-      }
-    }
-
-    // Extraer método
-    let method = raw
-      .lines()
-      .next()
-      .and_then(|l| l.split_whitespace().next())
-      .unwrap_or("");
-
-    // Determinar longitud
-    let content_length = raw
-      .lines()
-      .find_map(|l| {
-        if l.to_lowercase().starts_with("content-length:") {
-          l.split(':').nth(1)?.trim().parse::<usize>().ok()
-        } else {
-          None
-        }
-      })
-      .unwrap_or(0);
-
-    if content_length > 0 {
-      let mut buf = vec![0; content_length];
-      let _ = reader.read_exact(&mut buf).await;
-      raw.push_str(&String::from_utf8_lossy(&buf));
-    } else if method != "GET" {
-      let mut rest = String::new();
-      let _ = reader.read_to_string(&mut rest).await;
-      raw.push_str(&rest);
-    }
-
-    Self::parse_raw(raw, routes, file_bases).await
+    Self::parse_raw_sync(raw, routes, file_bases)
   }
 
   #[cfg(feature = "sync")]
-  pub fn parse_raw(
+  pub fn parse_raw_sync(
     raw: String,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -370,12 +230,12 @@ impl Request {
       );
     }
     let mut req = Self::parse_raw_only(raw, routes);
-    let early = req.route(routes, file_bases);
+    let early = req.route_sync(routes, file_bases);
     (req, early)
   }
 
-  #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-  pub async fn parse_raw(
+#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+  pub async fn parse_raw_async(
     raw: String,
     routes: &HashMap<(Rt, String), Rh>,
     file_bases: &[String],
@@ -438,7 +298,7 @@ impl Request {
     }
     let mut req = Self::parse_raw_only(raw, routes);
     // route is async under these features, await it here
-    let early = req.route(routes, file_bases).await;
+    let early = req.route_async(routes, file_bases).await;
     (req, early)
   }
 
@@ -495,7 +355,7 @@ impl Request {
   }
 
   #[cfg(feature = "sync")]
-  pub fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
+  pub fn route_sync(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
       return Some(futures::executor::block_on(rh.handler.handle(self)));
     }
@@ -521,8 +381,8 @@ impl Request {
     None
   }
 
-  #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-  pub async fn route(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
+#[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+  pub async fn route_async(&mut self, routes: &HashMap<(Rt, String), Rh>, file_bases: &[String]) -> Option<Response> {
     if let Some(rh) = routes.get(&(self.method.clone(), self.path.clone())) {
       return Some(rh.handler.handle(self).await);
     }
@@ -623,19 +483,19 @@ impl Display for Request {
 }
 
 #[cfg(feature = "sync")]
-pub fn handle_request(
+pub fn handle_request_sync(
   req: &mut Request,
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  req.route(routes, file_bases)
+  req.route_sync(routes, file_bases)
 }
 
 #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
-pub async fn handle_request(
+pub async fn handle_request_async(
   req: &mut Request,
   routes: &HashMap<(Rt, String), Rh>,
   file_bases: &[String],
 ) -> Option<Response> {
-  req.route(routes, file_bases).await
+  req.route_async(routes, file_bases).await
 }

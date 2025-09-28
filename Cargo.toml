@@ -18,7 +18,7 @@ path = "src/lib.rs"
 [features]
 sync = []
 async_tokio = ["tokio"]
-async_smol = ["smol"]
+async_smol = ["smol", "futures-lite"]
 async_std = ["async-std"]
 
 [dependencies]

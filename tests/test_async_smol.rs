@@ -1,24 +1,27 @@
 #![cfg(feature = "async_smol")]
 
 use httpageboy::test_utils::{run_test, setup_test_server, SERVER_URL};
-use httpageboy::Server;
-use httpageboy::{Request, Response, Rt, StatusCode};
+use httpageboy::{handler, Request, Response, Rt, Server, StatusCode};
 use std::collections::BTreeMap;
 
 async fn create_test_server() -> Server {
   let mut server = Server::new(SERVER_URL, None).await.unwrap();
-  server.add_route("/", Rt::GET, demo_handle_home);
-  server.add_route("/test", Rt::GET, demo_handle_get);
-  server.add_route("/test", Rt::POST, demo_handle_post);
-  server.add_route("/test/{param1}", Rt::POST, demo_handle_post);
-  server.add_route("/test/{param1}/{param2}", Rt::POST, demo_handle_post);
-  server.add_route("/test", Rt::PUT, demo_handle_put);
-  server.add_route("/test", Rt::DELETE, demo_handle_delete);
+  server.add_route("/", Rt::GET, handler!(demo_handle_home));
+  server.add_route("/test", Rt::GET, handler!(demo_handle_get));
+  server.add_route("/test", Rt::POST, handler!(demo_handle_post));
+  server.add_route("/test/{param1}", Rt::POST, handler!(demo_handle_post));
+  server.add_route(
+    "/test/{param1}/{param2}",
+    Rt::POST,
+    handler!(demo_handle_post),
+  );
+  server.add_route("/test", Rt::PUT, handler!(demo_handle_put));
+  server.add_route("/test", Rt::DELETE, handler!(demo_handle_delete));
   server.add_files_source("res");
   server
 }
 
-fn demo_handle_home(_request: &Request) -> Response {
+async fn demo_handle_home(_request: &Request) -> Response {
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
@@ -26,7 +29,7 @@ fn demo_handle_home(_request: &Request) -> Response {
   }
 }
 
-fn demo_handle_get(_request: &Request) -> Response {
+async fn demo_handle_get(_request: &Request) -> Response {
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
@@ -34,7 +37,7 @@ fn demo_handle_get(_request: &Request) -> Response {
   }
 }
 
-fn demo_handle_post(_request: &Request) -> Response {
+async fn demo_handle_post(_request: &Request) -> Response {
   let mut ordered: BTreeMap<&String, &String> = BTreeMap::new();
   for (k, v) in &_request.params {
     ordered.insert(k, v);
@@ -50,7 +53,7 @@ fn demo_handle_post(_request: &Request) -> Response {
   }
 }
 
-fn demo_handle_put(_request: &Request) -> Response {
+async fn demo_handle_put(_request: &Request) -> Response {
   let body = format!(
     "Method: {}\nUri: {}\nParams: {:?}\nBody: {:?}",
     _request.method, _request.path, _request.params, _request.body
@@ -62,7 +65,7 @@ fn demo_handle_put(_request: &Request) -> Response {
   }
 }
 
-fn demo_handle_delete(_request: &Request) -> Response {
+async fn demo_handle_delete(_request: &Request) -> Response {
   Response {
     status: StatusCode::Ok.to_string(),
     content_type: String::new(),
