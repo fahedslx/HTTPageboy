@@ -17,52 +17,36 @@ Execute using `cargo run --features async_tokio`
 
 ```rust
 #![cfg(feature = "async_tokio")]
-use httpageboy::{Handler, Request, Response, Rt, Server, StatusCode};
-use tokio::io::AsyncWriteExt;
+use httpageboy::{Rt, Response, Server, StatusCode};
 
-/// GET /hello?name=Foo -> HTML with "Foo"
-async fn hello(req: &Request) -> Response {
-  let name = query_param(&req.path, "name").unwrap_or_else(|| "friend".into());
-  let html = format!("<!DOCTYPE html><meta charset=utf-8><body>Hello, {}! 🤓</body>", name);
+/// Minimal async handler: waits 100ms and replies "ok"
+async fn demo(_req: &()) -> Response {
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   Response {
     status: StatusCode::Ok.to_string(),
-    content_type: "text/html; charset=utf-8".into(),
-    content: html.into_bytes(),
+    content_type: "text/plain".into(),
+    content: b"ok".to_vec(),
   }
-}
-
-/// Tiny query string parser (no URL-decoding for brevity)
-fn query_param(path: &str, key: &str) -> Option<String> {
-  let q = path.splitn(2, '?').nth(1)?;
-  for pair in q.split('&') {
-    let mut it = pair.splitn(2, '=');
-    if let (Some(k), Some(v)) = (it.next(), it.next()) {
-      if k == key {
-        return Some(v.to_string());
-      }
-    }
-  }
-  None
 }
 
 #[tokio::main]
 async fn main() {
   let mut srv = Server::new("127.0.0.1:7878", None).await.unwrap();
-  srv.add_route("/hello", Rt::GET, handler!(hello));
-  srv.add_files_source("res"); // optional: static files from ./res
+  srv.add_route("/", Rt::GET, handler!(demo));
   srv.run().await;
 }
-
-```
+````
 
 ## Testing
 
 For synchronous tests:
+
 ```bash
 cargo test --features sync --test test_sync
 ```
 
 For asynchronous tests:
+
 ```bash
 cargo test --features async_tokio --test test_async_tokio
 cargo test --features async_std --test test_async_std
