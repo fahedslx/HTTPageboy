@@ -54,16 +54,16 @@ mod server_export {
       // Fallback if no feature is active
       pub struct Server;
 
-      impl Server {
-        /// Panics with guidance when no feature is selected
-        pub fn new() -> Self {
-          eprintln!(
-            "\n❌ No feature is active.\n\nActivate one when compiling:\n\n  cargo run --features sync\n  cargo run --features async_tokio\n  cargo run --features async_std\n  cargo run --features async_smol\n"
-          );
-          panic!("No feature selected.");
-        }
-      }
-    }
-  }
+// DEFAULT (NO FEATURES)
+#[cfg(all(
+  not(feature = "sync"),
+  not(feature = "async_tokio"),
+  not(feature = "async_std"),
+  not(feature = "async_smol")
+))]
+fn main() {
+  eprintln!(
+    "\n❌ No feature is active.\n\nActivate a feature when compiling:\n\n    cargo run --features sync\n    cargo run --features async_tokio\n    cargo run --features async_std\n    cargo run --features async_smol\n"
+  );
 }
 pub use server_export::Server;
