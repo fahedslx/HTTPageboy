@@ -1,5 +1,4 @@
 // src/core/handler.rs
-
 #![cfg(any(
   feature = "sync",
   feature = "async_tokio",
@@ -12,25 +11,21 @@ use async_trait::async_trait;
 use futures::future::BoxFuture;
 use std::sync::Arc;
 
-/// The core, unified `Handler` trait, powered by `async-trait`.
+/// Unified async Handler.
 #[async_trait]
 pub trait Handler: Send + Sync {
   async fn handle(&self, request: &Request) -> Response;
 }
 
-// Blanket implementation for Arc<dyn Handler> for convenience.
 #[async_trait]
 impl Handler for Arc<dyn Handler> {
-    async fn handle(&self, request: &Request) -> Response {
-        (**self).handle(request).await
-    }
+  async fn handle(&self, request: &Request) -> Response {
+    (**self).handle(request).await
+  }
 }
 
-// --- Helper Functions and Structs (To be hidden by the macro) ---
-
-// A private struct to wrap a synchronous function.
+// Wrap a sync function.
 struct SyncFnHandler<F>(F);
-
 #[async_trait]
 impl<F> Handler for SyncFnHandler<F>
 where
@@ -40,8 +35,6 @@ where
     (self.0)(request)
   }
 }
-
-/// Wraps a synchronous function, turning it into a type that implements `Handler`.
 pub fn sync_h<F>(f: F) -> Arc<dyn Handler>
 where
   F: for<'a> Fn(&'a Request) -> Response + Send + Sync + 'static,
@@ -49,25 +42,22 @@ where
   Arc::new(SyncFnHandler(f))
 }
 
-// A private struct to wrap an asynchronous function that returns a BoxFuture.
+// Wrap an async BoxFuture fn.
 struct AsyncFnHandler<F>(F);
-
 #[async_trait]
 impl<F> Handler for AsyncFnHandler<F>
 where
-    F: for<'a> Fn(&'a Request) -> BoxFuture<'a, Response> + Send + Sync,
+  F: for<'a> Fn(&'a Request) -> BoxFuture<'a, Response> + Send + Sync,
 {
-    async fn handle(&self, request: &Request) -> Response {
-        (self.0)(request).await
-    }
+  async fn handle(&self, request: &Request) -> Response {
+    (self.0)(request).await
+  }
 }
-
-/// Wraps an asynchronous closure that returns a BoxFuture.
 pub fn async_h<F>(f: F) -> Arc<dyn Handler>
 where
-    F: for<'a> Fn(&'a Request) -> BoxFuture<'a, Response> + Send + Sync + 'static,
+  F: for<'a> Fn(&'a Request) -> BoxFuture<'a, Response> + Send + Sync + 'static,
 {
-    Arc::new(AsyncFnHandler(f))
+  Arc::new(AsyncFnHandler(f))
 }
 
 /// Simplifies handler creation for synchronous builds.
