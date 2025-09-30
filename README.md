@@ -12,47 +12,32 @@ The core logic resides in `src/lib.rs`.
 
 The following example is executable. Run `cargo run` to see the available variants and navigate to [http://127.0.0.1:7878](http://127.0.0.1:7878) in your browser.
 
-A basic async server setup example:
-Execute using `cargo run --features async_tokio`
+A basic server setup:
 
 ```rust
-#![cfg(feature = "async_tokio")]
-use httpageboy::{Handler, Request, Response, Rt, Server, StatusCode};
-use tokio::io::AsyncWriteExt;
+use httpageboy::{Request, Response, Rt, Server, StatusCode}; // Rt is alias for ResponseType
 
-/// GET /hello?name=Foo -> HTML with "Foo"
-async fn hello(req: &Request) -> Response {
-  let name = query_param(&req.path, "name").unwrap_or_else(|| "friend".into());
-  let html = format!("<!DOCTYPE html><meta charset=utf-8><body>Hello, {}! 🤓</body>", name);
+fn main() {
+  let serving_url: &str = "127.0.0.1:7878";
+  let threads_number: u8 = 10;
+  let mut server = Server::new(serving_url, threads_number, None).unwrap();
+  server.add_route("/", Rt::GET, demo_get);
+  server.add_files_source("res"); // this points to the /res folder in the project root
+  server.run();
+}
+
+fn demo_get(_request: &Request) -> Response {
   Response {
     status: StatusCode::Ok.to_string(),
-    content_type: "text/html; charset=utf-8".into(),
-    content: html.into_bytes(),
+    content_type: String::new(),
+    content: "<!DOCTYPE html><html><head>\
+<meta charset=\"utf-8\">\
+</head><body>🤓: Hi, this is Pageboy working.
+<br>Do you like the <a href=\"/HTTPageboy.svg\">new icon</a>?</body></html>"
+      .as_bytes()
+      .to_vec(),
   }
 }
-
-/// Tiny query string parser (no URL-decoding for brevity)
-fn query_param(path: &str, key: &str) -> Option<String> {
-  let q = path.splitn(2, '?').nth(1)?;
-  for pair in q.split('&') {
-    let mut it = pair.splitn(2, '=');
-    if let (Some(k), Some(v)) = (it.next(), it.next()) {
-      if k == key {
-        return Some(v.to_string());
-      }
-    }
-  }
-  None
-}
-
-#[tokio::main]
-async fn main() {
-  let mut srv = Server::new("127.0.0.1:7878", None).await.unwrap();
-  srv.add_route("/hello", Rt::GET, handler!(hello));
-  srv.add_files_source("res"); // optional: static files from ./res
-  srv.run().await;
-}
-
 ```
 
 ## Testing
