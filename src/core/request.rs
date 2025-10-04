@@ -117,6 +117,15 @@ use std::path::Path;
 #[cfg(feature = "sync")]
 use std::net::TcpStream;
 
+#[cfg(feature = "async_tokio")]
+use tokio;
+#[cfg(feature = "async_std")]
+use async_std;
+#[cfg(feature = "async_smol")]
+use futures_lite;
+#[cfg(feature = "async_smol")]
+use smol;
+
 create_async_parse_stream!(
     #[cfg(feature = "async_tokio")]
     parse_stream_tokio,

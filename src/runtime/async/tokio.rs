@@ -1,7 +1,7 @@
 use crate::core::request::handle_request_async;
 use crate::core::request_handler::Rh;
 use crate::core::response::Response;
-use crate::runtime::r#async::shared;
+use super::shared;
 use crate::runtime::shared::print_server_info;
 use async_trait::async_trait;
 use std::collections::HashMap;
