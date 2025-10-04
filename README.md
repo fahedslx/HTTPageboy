@@ -15,39 +15,37 @@ The following example is executable. Run `cargo run` to see the available varian
 A basic server setup:
 
 ```rust
-use httpageboy::{Request, Response, Rt, Server, StatusCode}; // Rt is alias for ResponseType
+#![cfg(feature = "async_tokio")]
+use httpageboy::{Rt, Response, Server, StatusCode};
 
-fn main() {
-  let serving_url: &str = "127.0.0.1:7878";
-  let threads_number: u8 = 10;
-  let mut server = Server::new(serving_url, threads_number, None).unwrap();
-  server.add_route("/", Rt::GET, demo_get);
-  server.add_files_source("res"); // this points to the /res folder in the project root
-  server.run();
-}
-
-fn demo_get(_request: &Request) -> Response {
+/// Minimal async handler: waits 100ms and replies "ok"
+async fn demo(_req: &()) -> Response {
+  tokio::time::sleep(std::time::Duration::from_millis(100)).await;
   Response {
     status: StatusCode::Ok.to_string(),
-    content_type: String::new(),
-    content: "<!DOCTYPE html><html><head>\
-<meta charset=\"utf-8\">\
-</head><body>🤓: Hi, this is Pageboy working.
-<br>Do you like the <a href=\"/HTTPageboy.svg\">new icon</a>?</body></html>"
-      .as_bytes()
-      .to_vec(),
+    content_type: "text/plain".into(),
+    content: b"ok".to_vec(),
   }
 }
-```
+
+#[tokio::main]
+async fn main() {
+  let mut srv = Server::new("127.0.0.1:7878", None).await.unwrap();
+  srv.add_route("/", Rt::GET, handler!(demo));
+  srv.run().await;
+}
+````
 
 ## Testing
 
 For synchronous tests:
+
 ```bash
 cargo test --features sync --test test_sync
 ```
 
 For asynchronous tests:
+
 ```bash
 cargo test --features async_tokio --test test_async_tokio
 cargo test --features async_std --test test_async_std
